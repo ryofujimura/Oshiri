@@ -1,28 +1,12 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, Content } from '@/lib/firebase';
 import { ContentCard } from './ContentCard';
+import { useQuery } from '@tanstack/react-query';
 
 export function ContentGrid() {
-  const [contents, setContents] = useState<Content[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: contents = [], isLoading } = useQuery({
+    queryKey: ['/api/contents'],
+  });
 
-  useEffect(() => {
-    const q = query(collection(db, 'contents'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const contentData: Content[] = [];
-      snapshot.forEach((doc) => {
-        contentData.push({ id: doc.id, ...doc.data() } as Content);
-      });
-      setContents(contentData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(6)].map((_, i) => (

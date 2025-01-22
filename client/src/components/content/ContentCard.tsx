@@ -1,11 +1,19 @@
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, Trash, Edit } from 'lucide-react';
-import { Content } from '@/lib/firebase';
-import { useAuthStore } from '@/lib/store';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+interface Content {
+  id: number;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+  userId: number;
+  upvotes: number;
+  downvotes: number;
+}
 
 interface ContentCardProps {
   content: Content;
@@ -13,57 +21,67 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ content, onEdit }: ContentCardProps) {
-  const { user, role } = useAuthStore();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleVote = async (type: 'up' | 'down') => {
-    if (!user) return;
+  const vote = useMutation({
+    mutationFn: async ({ type }: { type: 'up' | 'down' }) => {
+      const response = await fetch(`/api/contents/${content.id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
+        credentials: 'include',
+      });
 
-    const contentRef = doc(db, 'contents', content.id);
-    const votes = { ...content.votes };
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
-    if (type === 'up') {
-      votes.upvotes = votes.upvotes.includes(user.uid)
-        ? votes.upvotes.filter(id => id !== user.uid)
-        : [...votes.upvotes, user.uid];
-      votes.downvotes = votes.downvotes.filter(id => id !== user.uid);
-    } else {
-      votes.downvotes = votes.downvotes.includes(user.uid)
-        ? votes.downvotes.filter(id => id !== user.uid)
-        : [...votes.downvotes, user.uid];
-      votes.upvotes = votes.upvotes.filter(id => id !== user.uid);
-    }
-
-    try {
-      await updateDoc(contentRef, { votes });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contents'] });
       toast({
         title: "Success",
         description: "Vote updated successfully"
       });
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to update vote",
+        description: error.message,
         variant: "destructive"
       });
     }
-  };
+  });
 
-  const handleDelete = async () => {
-    try {
-      await deleteDoc(doc(db, 'contents', content.id));
+  const deleteContent = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/contents/${content.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contents'] });
       toast({
         title: "Success",
         description: "Content deleted successfully"
       });
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to delete content",
+        description: error.message,
         variant: "destructive"
       });
     }
-  };
+  });
 
   return (
     <Card className="w-full">
@@ -85,23 +103,23 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleVote('up')}
+            onClick={() => vote.mutate({ type: 'up' })}
             disabled={!user}
           >
             <ThumbsUp className="w-4 h-4 mr-1" />
-            {content.votes.upvotes.length}
+            {content.upvotes}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleVote('down')}
+            onClick={() => vote.mutate({ type: 'down' })}
             disabled={!user}
           >
             <ThumbsDown className="w-4 h-4 mr-1" />
-            {content.votes.downvotes.length}
+            {content.downvotes}
           </Button>
         </div>
-        {role === 'admin' && (
+        {user?.role === 'admin' && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -113,7 +131,7 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleDelete}
+              onClick={() => deleteContent.mutate()}
             >
               <Trash className="w-4 h-4" />
             </Button>

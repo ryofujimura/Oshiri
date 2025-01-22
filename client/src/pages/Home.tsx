@@ -4,11 +4,11 @@ import { ContentGrid } from '@/components/content/ContentGrid';
 import { ContentForm } from '@/components/content/ContentForm';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/hooks/use-auth';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (

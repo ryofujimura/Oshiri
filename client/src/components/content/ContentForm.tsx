@@ -5,10 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/hooks/use-auth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface FormData {
   title: string;
@@ -19,47 +17,55 @@ interface FormData {
 export function ContentForm() {
   const { register, handleSubmit, reset } = useForm<FormData>();
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const onSubmit = async (data: FormData) => {
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      let imageUrl = '';
+  const createContent = useMutation({
+    mutationFn: async (data: FormData) => {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
       if (data.image?.[0]) {
-        const imageRef = ref(storage, `content/${Date.now()}_${data.image[0].name}`);
-        await uploadBytes(imageRef, data.image[0]);
-        imageUrl = await getDownloadURL(imageRef);
+        formData.append('image', data.image[0]);
       }
 
-      await addDoc(collection(db, 'contents'), {
-        title: data.title,
-        description: data.description,
-        imageUrl,
-        createdBy: user.uid,
-        createdAt: new Date(),
-        votes: {
-          upvotes: [],
-          downvotes: []
-        }
+      const response = await fetch('/api/contents', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
 
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contents'] });
       toast({
         title: "Success",
         description: "Content created successfully"
       });
       reset();
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to create content",
+        description: error.message,
         variant: "destructive"
       });
-    } finally {
+    },
+    onSettled: () => {
       setLoading(false);
     }
+  });
+
+  const onSubmit = async (data: FormData) => {
+    if (!user) return;
+    setLoading(true);
+    createContent.mutate(data);
   };
 
   return (

@@ -1,65 +1,89 @@
-import { signInWithPopup, signOut } from 'firebase/auth';
-import { auth, provider, db } from '@/lib/firebase';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/store';
-import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useForm } from 'react-hook-form';
+
+interface AuthFormData {
+  username: string;
+  password: string;
+}
 
 export function AuthButton() {
-  const { user, setUser } = useAuthStore();
-  const { toast } = useToast();
+  const { user, login, register, logout } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const { register: registerField, handleSubmit, reset } = useForm<AuthFormData>();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleSignIn = async () => {
+  const onSubmit = async (data: AuthFormData) => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      setUser(result.user);
-
-      // Create or update user document in Firestore
-      await setDoc(doc(db, 'users', result.user.uid), {
-        uid: result.user.uid,
-        email: result.user.email,
-        role: 'user', // Default role for new users
-        lastLogin: new Date()
-      }, { merge: true });
-
-      toast({
-        title: "Welcome!",
-        description: "Successfully signed in."
-      });
-    } catch (error: any) {
-      console.error('Sign-in error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sign in.",
-        variant: "destructive"
-      });
+      if (isRegister) {
+        await register(data);
+      } else {
+        await login(data);
+      }
+      setIsOpen(false);
+      reset();
+    } catch (error) {
+      console.error('Auth error:', error);
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      toast({
-        title: "Goodbye!",
-        description: "Successfully signed out."
-      });
-    } catch (error: any) {
-      console.error('Sign-out error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sign out.",
-        variant: "destructive"
-      });
-    }
-  };
+  if (user) {
+    return (
+      <Button variant="outline" onClick={() => logout()}>
+        Sign Out
+      </Button>
+    );
+  }
 
   return (
-    <Button 
-      onClick={user ? handleSignOut : handleSignIn}
-      variant="outline"
-    >
-      {user ? 'Sign Out' : 'Sign In with Google'}
-    </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">Sign In</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isRegister ? 'Register' : 'Sign In'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              {...registerField('username', { required: true })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              {...registerField('password', { required: true })}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button type="submit">
+              {isRegister ? 'Register' : 'Sign In'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsRegister(!isRegister)}
+            >
+              {isRegister ? 'Already have an account?' : "Don't have an account?"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
