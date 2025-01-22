@@ -3,6 +3,14 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
 
+// Log environment variables availability (not their values)
+console.log('Firebase Config Check:', {
+  apiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+  projectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  messagingSenderId: !!import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: !!import.meta.env.VITE_FIREBASE_APP_ID
+});
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
@@ -12,17 +20,28 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let auth;
+let provider;
+let storage;
+let db;
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const provider = new GoogleAuthProvider();
-provider.setCustomParameters({
-  prompt: 'select_account'
-});
-export const storage = getStorage(app);
-export const db = getFirestore(app);
+try {
+  // Initialize Firebase
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  storage = getStorage(app);
+  db = getFirestore(app);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  throw error;
+}
+
+// Export the initialized services
+export { auth, provider, storage, db };
 
 export interface Content {
   id: string;
