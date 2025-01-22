@@ -11,7 +11,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 interface FormData {
   title: string;
   description: string;
-  image?: FileList;
+  images?: FileList;
 }
 
 export function ContentForm() {
@@ -26,8 +26,10 @@ export function ContentForm() {
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('description', data.description);
-      if (data.image?.[0]) {
-        formData.append('image', data.image[0]);
+      if (data.images) {
+        Array.from(data.images).forEach((file) => {
+          formData.append('images', file);
+        });
       }
 
       const response = await fetch('/api/contents', {
@@ -89,13 +91,17 @@ export function ContentForm() {
       </div>
 
       <div>
-        <Label htmlFor="image">Image</Label>
+        <Label htmlFor="images">Images (Up to 5)</Label>
         <Input
-          id="image"
+          id="images"
           type="file"
           accept="image/*"
-          {...register('image')}
+          multiple
+          {...register('images')}
         />
+        <p className="text-sm text-muted-foreground mt-1">
+          You can select up to 5 images
+        </p>
       </div>
 
       <Button type="submit" disabled={loading}>
