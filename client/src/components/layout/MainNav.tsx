@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Menu, Search, MapPin, Star, User, X } from 'lucide-react';
+import { Menu, Search, MapPin, Star, User, MessageSquarePlus, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,12 @@ const routes = [
     href: '/top-rated',
     icon: Star,
     description: 'Best rated seating experiences',
+  },
+  {
+    title: 'Feedback',
+    href: '/feedback',
+    icon: MessageSquarePlus,
+    description: 'Share your thoughts and suggestions',
   },
   {
     title: 'Profile',

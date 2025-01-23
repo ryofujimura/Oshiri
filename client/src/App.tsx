@@ -9,7 +9,6 @@ import NearMe from "@/pages/NearMe";
 import EstablishmentDetails from "@/pages/EstablishmentDetails";
 import Profile from "@/pages/profile";
 import TopRated from "@/pages/TopRated";
-import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import Feedback from "@/pages/feedback";
 import AdminFeedback from "@/pages/admin/feedback";
 
@@ -33,7 +32,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router />
-      <FeedbackButton />
       <Toaster />
     </QueryClientProvider>
   );

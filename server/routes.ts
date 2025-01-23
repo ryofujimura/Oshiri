@@ -74,10 +74,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send('Invalid vote type');
       }
 
+      const columnName = type === 'up' ? 'upvotes' : 'downvotes';
       const [feedback] = await db
         .update(websiteFeedback)
         .set({
-          [type === 'up' ? 'upvotes' : 'downvotes']: sql`${websiteFeedback[type === 'up' ? 'upvotes' : 'downvotes']} + 1`,
+          [columnName]: sql`${websiteFeedback[columnName]} + 1`
         })
         .where(eq(websiteFeedback.id, feedbackId))
         .returning();
