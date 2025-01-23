@@ -26,42 +26,68 @@ interface EstablishmentGridProps {
   searchParams?: SearchParams;
 }
 
+type PermissionState = 'granted' | 'denied' | 'prompt';
+
 export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [permissionState, setPermissionState] = useState<PermissionState | null>(null);
 
   useEffect(() => {
-    if ((!searchParams?.location || searchParams.location.trim() === '') && "geolocation" in navigator) {
-      setIsLocating(true);
-      setLocationError(null);
+    // Check if geolocation permissions are already granted
+    if ("permissions" in navigator) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then(permissionStatus => {
+          setPermissionState(permissionStatus.state);
+          permissionStatus.onchange = () => {
+            setPermissionState(permissionStatus.state);
+          };
+        });
+    }
+  }, []);
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoordinates({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          setLocationError(null);
-          setIsLocating(false);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          let errorMessage = "Please enable location services or provide a location";
-          if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = "Location access was denied. Please provide a location in the search box.";
-          }
-          setLocationError(errorMessage);
-          setCoordinates(null);
-          setIsLocating(false);
-        },
-        { timeout: 10000 } // 10 second timeout
-      );
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        setLocationError(null);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        let errorMessage = "Please enable location services or provide a location";
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = "Location access was denied. Please provide a location in the search box.";
+        }
+        setLocationError(errorMessage);
+        setCoordinates(null);
+        setIsLocating(false);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  // Only try to get location automatically if no manual location is provided
+  useEffect(() => {
+    if (!searchParams?.location && permissionState === 'granted') {
+      requestLocation();
     } else {
       setCoordinates(null);
       setIsLocating(false);
     }
-  }, [searchParams?.location]);
+  }, [searchParams?.location, permissionState]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['establishments', searchParams?.term, searchParams?.location || coordinates?.latitude],
@@ -110,14 +136,30 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  if (locationError) {
+  const showLocationButton = !coordinates && !searchParams?.location && !isLocating;
+
+  if (showLocationButton) {
     return (
-      <Alert variant="destructive" className="my-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {locationError}
-        </AlertDescription>
-      </Alert>
+      <div className="flex flex-col items-center justify-center gap-4 py-8">
+        <Button
+          onClick={requestLocation}
+          className="flex items-center gap-2"
+          variant="outline"
+          size="lg"
+        >
+          <MapPin className="w-5 h-5" />
+          Use My Location
+        </Button>
+        {locationError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{locationError}</AlertDescription>
+          </Alert>
+        )}
+        <p className="text-sm text-muted-foreground">
+          Or enter a location manually in the search box above
+        </p>
+      </div>
     );
   }
 
