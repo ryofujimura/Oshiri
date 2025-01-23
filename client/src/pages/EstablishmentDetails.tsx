@@ -2,7 +2,6 @@ import { useParams } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Loader2, Star, MapPin, Phone, ThumbsUp, ThumbsDown, Chair, Users, Volume2, Power } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -91,7 +90,7 @@ export default function EstablishmentDetails() {
   if (isLoadingEstablishment || isLoadingSeats) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="animate-spin text-xl">⌛</div>
       </div>
     );
   }
@@ -125,19 +124,19 @@ export default function EstablishmentDetails() {
           <h1 className="text-4xl font-bold mb-4">{establishment.name}</h1>
           <div className="flex flex-wrap gap-4 text-muted-foreground">
             <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
+              📍
               <span>
-                {establishment.location.address1}, {establishment.location.city}
+                {establishment.location?.address1}, {establishment.location?.city}
               </span>
             </div>
             {establishment.phone && (
               <div className="flex items-center gap-1">
-                <Phone className="h-4 w-4" />
+                📞
                 <span>{establishment.phone}</span>
               </div>
             )}
             <div className="flex items-center gap-1">
-              <Star className="h-4 w-4" />
+              ⭐
               <span>{establishment.rating}/5</span>
             </div>
           </div>
@@ -175,7 +174,7 @@ export default function EstablishmentDetails() {
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Chair className="h-5 w-5" />
+                        🪑
                         <h3 className="font-semibold capitalize">{seat.type}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -202,19 +201,19 @@ export default function EstablishmentDetails() {
                   )}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4" />
+                      ⭐
                       <span className="font-medium">Comfort:</span>
                       <span className="text-muted-foreground">{seat.comfortRating}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                      👥
                       <span className="font-medium">Capacity:</span>
                       <span className="text-muted-foreground">
                         {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Power className="h-4 w-4" />
+                      🔌
                       <span className="font-medium">Power Outlet:</span>
                       <span className="text-muted-foreground">
                         {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
@@ -222,7 +221,7 @@ export default function EstablishmentDetails() {
                     </div>
                     {seat.noiseLevel && (
                       <div className="flex items-center gap-2">
-                        <Volume2 className="h-4 w-4" />
+                        🔊
                         <span className="font-medium">Noise Level:</span>
                         <span className="text-muted-foreground">{seat.noiseLevel}</span>
                       </div>
@@ -240,7 +239,7 @@ export default function EstablishmentDetails() {
                         onClick={() => handleVote(seat.id, 'upvote')}
                         disabled={voteMutation.isPending}
                       >
-                        <ThumbsUp className="h-4 w-4" />
+                        👍
                         <span>{seat.upvotes}</span>
                       </Button>
                       <Button
@@ -250,7 +249,7 @@ export default function EstablishmentDetails() {
                         onClick={() => handleVote(seat.id, 'downvote')}
                         disabled={voteMutation.isPending}
                       >
-                        <ThumbsDown className="h-4 w-4" />
+                        👎
                         <span>{seat.downvotes}</span>
                       </Button>
                     </div>
