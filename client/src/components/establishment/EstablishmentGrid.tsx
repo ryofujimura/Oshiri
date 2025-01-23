@@ -62,21 +62,19 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       });
       setLocationError(null);
 
-      // Show success toast
       toast({
         title: "Location detected",
-        description: "Using your current location for search results",
+        description: "Showing nearby restaurants",
       });
     } catch (error: any) {
       console.error('Geolocation error:', error);
-      let errorMessage = "Please enable location services or provide a location";
+      let errorMessage = "Unable to get your location. Showing general results instead.";
       if (error.code === 1) { // PERMISSION_DENIED
-        errorMessage = "Location access was denied. Please provide a location in the search box.";
+        errorMessage = "Location access was denied. Please enable location services to see nearby restaurants.";
       }
       setLocationError(errorMessage);
       setCoordinates(null);
 
-      // Show error toast
       toast({
         title: "Location error",
         description: errorMessage,
@@ -87,10 +85,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     }
   };
 
-  // Check permission and request location on mount if no manual location is provided
+  // Check permission and request location on mount
   useEffect(() => {
     const checkPermissionAndLocation = async () => {
-      if (!searchParams?.location && "permissions" in navigator) {
+      if ("permissions" in navigator) {
         try {
           const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
           setPermissionState(permissionStatus.state);
@@ -114,47 +112,55 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     };
 
     checkPermissionAndLocation();
-  }, [searchParams?.location]);
+  }, []);
 
-  // Reset coordinates when manual location is provided
-  useEffect(() => {
-    if (searchParams?.location) {
-      setCoordinates(null);
-      setIsLocating(false);
-    }
-  }, [searchParams?.location]);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['establishments', searchParams?.term, searchParams?.location || coordinates?.latitude],
+  // Query for nearby establishments (default view)
+  const nearbyQuery = useQuery({
+    queryKey: ['nearby-establishments', coordinates?.latitude, coordinates?.longitude],
     queryFn: async () => {
-      let url = '/api/establishments/search?';
+      if (!coordinates) return null;
+
+      const params = new URLSearchParams({
+        latitude: coordinates.latitude.toString(),
+        longitude: coordinates.longitude.toString(),
+        radius: '5000', // 5km radius
+      });
+
+      const response = await fetch(`/api/establishments/nearby?${params}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch nearby establishments');
+      }
+      return response.json();
+    },
+    enabled: !!coordinates && !searchParams?.term && !searchParams?.location,
+  });
+
+  // Query for search results (when user searches)
+  const searchQuery = useQuery({
+    queryKey: ['establishments', searchParams?.term, searchParams?.location],
+    queryFn: async () => {
       const params = new URLSearchParams();
 
       if (searchParams?.term) {
         params.append('term', searchParams.term);
       }
 
-      if (searchParams?.location && searchParams.location.trim() !== '') {
+      if (searchParams?.location) {
         params.append('location', searchParams.location);
       } else if (coordinates) {
         params.append('latitude', coordinates.latitude.toString());
         params.append('longitude', coordinates.longitude.toString());
-      } else if (!isLocating) {
-        throw new Error("Please provide a location or enable location services");
       }
 
-      const response = await fetch(`${url}${params}`);
+      const response = await fetch(`/api/establishments/search?${params}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch establishments');
       }
       return response.json();
     },
-    enabled: !!(
-      (searchParams?.location && searchParams.location.trim() !== '') ||
-      coordinates ||
-      isLocating === false
-    ),
+    enabled: !!(searchParams?.term || searchParams?.location),
   });
 
   if (isLocating) {
@@ -164,43 +170,13 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
           <Loader2 className="w-8 h-8 animate-spin" />
           <span>Detecting your location...</span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          You can also enter a location manually in the search box above
-        </p>
       </div>
     );
   }
 
-  // Only show location button if permission is denied or not granted and no manual location
-  const showLocationButton = !coordinates && !searchParams?.location && 
-    !isLocating && permissionState !== 'granted';
-
-  if (showLocationButton) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 py-8">
-        <Button
-          onClick={requestLocation}
-          className="flex items-center gap-2"
-          variant="outline"
-          size="lg"
-        >
-          <MapPin className="w-5 h-5" />
-          Use My Location
-        </Button>
-        {locationError && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{locationError}</AlertDescription>
-          </Alert>
-        )}
-        <p className="text-sm text-muted-foreground">
-          Or enter a location manually in the search box above
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
+  // Handle errors
+  if (searchQuery.error || nearbyQuery.error) {
+    const error = searchQuery.error || nearbyQuery.error;
     return (
       <Alert variant="destructive" className="my-4">
         <AlertCircle className="h-4 w-4" />
@@ -209,7 +185,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  if (isLoading) {
+  // Show loading state
+  if ((searchParams && searchQuery.isLoading) || (!searchParams && nearbyQuery.isLoading)) {
     return (
       <div className="flex justify-center py-8">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -217,12 +194,19 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  if (!data?.businesses?.length) {
+  // Determine which data to show
+  const establishments = searchParams?.term || searchParams?.location
+    ? searchQuery.data?.businesses
+    : nearbyQuery.data?.businesses;
+
+  if (!establishments?.length) {
     return (
       <Alert className="my-4">
         <MapPin className="h-4 w-4" />
         <AlertDescription>
-          No establishments found. Try adjusting your search criteria or providing a different location.
+          {searchParams?.term || searchParams?.location
+            ? "No establishments found. Try adjusting your search criteria."
+            : "No nearby establishments found. Try searching for a specific location."}
         </AlertDescription>
       </Alert>
     );
@@ -230,7 +214,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {data.businesses.map((establishment: Establishment) => (
+      {establishments.map((establishment: Establishment) => (
         <Card key={establishment.id} className="hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             {establishment.photos && establishment.photos.length > 0 && (
