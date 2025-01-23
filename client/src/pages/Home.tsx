@@ -1,24 +1,11 @@
 import { AuthButton } from '@/components/auth/AuthButton';
-import { EstablishmentGrid } from '@/components/establishment/EstablishmentGrid';
 import { MainNav } from '@/components/layout/MainNav';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
-import { Input } from '@/components/ui/input';
-import { Search, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { Search, MapPin, Star } from 'lucide-react';
 
 export default function Home() {
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [location, setLocation] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      setIsSearching(true);
-    }
-  };
+  const [, setLocation] = useLocation();
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,39 +23,54 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-primary/10 to-primary/5 py-20">
+        <section className="relative bg-gradient-to-br from-primary/10 to-primary/5 py-32">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Find Your Perfect Seat
               </h2>
-              <p className="text-xl text-muted-foreground mb-8">
+              <p className="text-xl text-muted-foreground mb-12">
                 Discover and rate the most comfortable seats in cafes and restaurants.
                 Because great experiences start with where you sit!
               </p>
 
-              {/* Search Form */}
-              <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search restaurants or cafes..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="relative flex-1">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Location (optional)"
-                    className="pl-10"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="md:w-auto">Search</Button>
-              </form>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 h-auto py-6 px-4"
+                  onClick={() => setLocation('/search')}
+                >
+                  <Search className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-semibold">Search</div>
+                    <div className="text-sm text-muted-foreground">Find your perfect spot</div>
+                  </div>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 h-auto py-6 px-4"
+                  onClick={() => setLocation('/near-me')}
+                >
+                  <MapPin className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-semibold">Near Me</div>
+                    <div className="text-sm text-muted-foreground">Discover local gems</div>
+                  </div>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 h-auto py-6 px-4"
+                  onClick={() => setLocation('/top-rated')}
+                >
+                  <Star className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-semibold">Top Rated</div>
+                    <div className="text-sm text-muted-foreground">Best seating experiences</div>
+                  </div>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -77,21 +79,6 @@ export default function Home() {
             <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
             <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
           </div>
-        </section>
-
-        {/* Establishments Grid */}
-        <section className="container mx-auto px-4 py-12">
-          <h3 className="text-2xl font-semibold mb-6">
-            {isSearching ? 'Search Results' : 'Nearby Establishments'}
-          </h3>
-          <EstablishmentGrid 
-            searchParams={
-              isSearching ? { 
-                term: searchTerm,
-                location: location || undefined 
-              } : undefined
-            } 
-          />
         </section>
       </main>
     </div>
