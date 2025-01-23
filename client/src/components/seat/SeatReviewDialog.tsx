@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Loader2, Plus, X } from 'lucide-react';
 
 const seatReviewSchema = z.object({
   type: z.string().min(1, 'Please select a seat type'),
@@ -30,6 +31,8 @@ interface Props {
 
 export function SeatReviewDialog({ establishmentId, trigger }: Props) {
   const [open, setOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,12 +43,52 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
     },
   });
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      if (selectedFiles.length + newFiles.length > 5) {
+        toast({
+          title: "Error",
+          description: "You can only upload up to 5 images",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+
+      // Create preview URLs
+      const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+      setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+
+    // Revoke the old preview URL to free up memory
+    URL.revokeObjectURL(previewUrls[index]);
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
   const addReviewMutation = useMutation({
     mutationFn: async (data: SeatReview) => {
+      const formData = new FormData();
+
+      // Append review data
+      Object.entries(data).forEach(([key, value]) => {
+        formData.append(key, value.toString());
+      });
+
+      // Append images
+      selectedFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
       const response = await fetch(`/api/establishments/${establishmentId}/seats`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: formData,
         credentials: 'include',
       });
 
@@ -63,6 +106,8 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
       });
       setOpen(false);
       form.reset();
+      setSelectedFiles([]);
+      setPreviewUrls([]);
     },
     onError: (error: Error) => {
       toast({
@@ -213,8 +258,60 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
               )}
             />
 
-            <Button type="submit" className="w-full">
-              Submit Review
+            <div className="space-y-2">
+              <FormLabel>Images</FormLabel>
+              <div className="grid grid-cols-3 gap-2">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={() => removeImage(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {selectedFiles.length < 5 && (
+                  <div className="relative w-full h-24">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
+                      <Plus className="h-6 w-6 text-gray-400" />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload up to 5 images of the seating area
+              </p>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={addReviewMutation.isPending}
+            >
+              {addReviewMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Review'
+              )}
             </Button>
           </form>
         </Form>

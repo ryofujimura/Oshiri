@@ -1,10 +1,15 @@
 import { type Express, type Request, type Response } from "express";
-import { establishments, seats, type InsertEstablishment } from "@db/schema";
+import { establishments, seats, users, images, type InsertEstablishment } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { searchEstablishments, getEstablishmentDetails } from "./utils/yelp";
 import type { SearchResponse, Business } from "./types/yelp";
-import { insertSeatSchema } from "@db/schema";
+import { insertSeatSchema, insertImageSchema } from "@db/schema";
+import { uploadImage } from "./utils/cloudinary";
+import multer from "multer";
+
+// Setup multer for handling file uploads
+const upload = multer({ dest: "uploads/" });
 
 export function setupEstablishmentRoutes(app: Express) {
   // Search establishments (uses Yelp API)
@@ -122,11 +127,19 @@ export function setupEstablishmentRoutes(app: Express) {
         return res.status(404).json({ message: "Establishment not found" });
       }
 
-      // Now get the seats for this establishment
-      const establishmentSeats = await db
-        .select()
-        .from(seats)
-        .where(eq(seats.establishmentId, establishment.id));
+      // Now get the seats with user and image data
+      const establishmentSeats = await db.query.seats.findMany({
+        where: eq(seats.establishmentId, establishment.id),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              username: true,
+            }
+          },
+          images: true
+        }
+      });
 
       res.json(establishmentSeats);
     } catch (error: any) {
@@ -135,65 +148,104 @@ export function setupEstablishmentRoutes(app: Express) {
     }
   });
 
-  // Add a new seat review
-  app.post("/api/establishments/:yelpId/seats", async (req: Request, res: Response) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Must be logged in to add reviews" });
-      }
+  // Add a new seat review with images
+  app.post(
+    "/api/establishments/:yelpId/seats",
+    upload.array("images", 5), // Allow up to 5 images
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: "Must be logged in to add reviews" });
+        }
 
-      const { yelpId } = req.params;
+        const { yelpId } = req.params;
 
-      // First get or create the establishment
-      let [establishment] = await db
-        .select()
-        .from(establishments)
-        .where(eq(establishments.yelpId, yelpId))
-        .limit(1);
+        // First get or create the establishment
+        let [establishment] = await db
+          .select()
+          .from(establishments)
+          .where(eq(establishments.yelpId, yelpId))
+          .limit(1);
 
-      if (!establishment) {
-        // Get establishment data from Yelp
-        const yelpData = await getEstablishmentDetails(yelpId);
+        if (!establishment) {
+          // Get establishment data from Yelp
+          const yelpData = await getEstablishmentDetails(yelpId);
 
-        [establishment] = await db
-          .insert(establishments)
-          .values({
-            yelpId: yelpData.id,
-            name: yelpData.name,
-            address: yelpData.location.address1 || '',
-            city: yelpData.location.city,
-            state: yelpData.location.state,
-            zipCode: yelpData.location.zip_code,
-            latitude: yelpData.coordinates.latitude,
-            longitude: yelpData.coordinates.longitude,
-            yelpRating: parseFloat(yelpData.rating),
-            phone: yelpData.phone
-          } as InsertEstablishment)
-          .returning();
-      }
+          [establishment] = await db
+            .insert(establishments)
+            .values({
+              yelpId: yelpData.id,
+              name: yelpData.name,
+              address: yelpData.location.address1 || '',
+              city: yelpData.location.city,
+              state: yelpData.location.state,
+              zipCode: yelpData.location.zip_code,
+              latitude: yelpData.coordinates.latitude,
+              longitude: yelpData.coordinates.longitude,
+              yelpRating: parseFloat(yelpData.rating),
+              phone: yelpData.phone
+            } as InsertEstablishment)
+            .returning();
+        }
 
-      // Validate and insert the seat review
-      const result = insertSeatSchema.safeParse({
-        ...req.body,
-        userId: req.user.id,
-        establishmentId: establishment.id
-      });
-
-      if (!result.success) {
-        return res.status(400).json({
-          message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ")
+        // Validate and insert the seat review
+        const result = insertSeatSchema.safeParse({
+          ...req.body,
+          userId: req.user.id,
+          establishmentId: establishment.id
         });
+
+        if (!result.success) {
+          return res.status(400).json({
+            message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ")
+          });
+        }
+
+        // Insert the seat first
+        const [newSeat] = await db
+          .insert(seats)
+          .values(result.data)
+          .returning();
+
+        // Handle image uploads if any
+        const uploadedImages = [];
+        if (req.files && Array.isArray(req.files)) {
+          for (const file of req.files) {
+            try {
+              const uploadResult = await uploadImage(file);
+              const [image] = await db.insert(images)
+                .values({
+                  seatId: newSeat.id,
+                  imageUrl: uploadResult.secure_url,
+                  publicId: uploadResult.public_id,
+                  width: uploadResult.width,
+                  height: uploadResult.height,
+                  format: uploadResult.format
+                })
+                .returning();
+              uploadedImages.push(image);
+            } catch (uploadError) {
+              console.error('Error uploading image:', uploadError);
+              // Continue with other images if one fails
+            }
+          }
+        }
+
+        // Return the seat with its images
+        const seatWithImages = {
+          ...newSeat,
+          images: uploadedImages,
+          user: {
+            id: req.user.id,
+            username: req.user.username
+          }
+        };
+
+        res.json(seatWithImages);
+      } catch (error: any) {
+        console.error('Error adding seat review:', error);
+        res.status(500).json({ message: error.message });
       }
-
-      const [newSeat] = await db
-        .insert(seats)
-        .values(result.data)
-        .returning();
-
-      res.json(newSeat);
-    } catch (error: any) {
-      console.error('Error adding seat review:', error);
-      res.status(500).json({ message: error.message });
     }
-  });
+  );
 }
