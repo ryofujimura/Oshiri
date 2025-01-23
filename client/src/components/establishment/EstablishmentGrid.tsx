@@ -141,11 +141,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         ...newCoordinates,
         timestamp: Date.now()
       }));
-
-      toast({
-        title: "Location detected",
-        description: "Showing nearby restaurants",
-      });
     } catch (error) {
       handleLocationError(error as GeolocationPositionError);
     } finally {
@@ -328,8 +323,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   // Determine which data to show
   const establishments = searchParams?.term || searchParams?.location
-    ? searchQuery.data?.businesses
-    : nearbyQuery.data?.businesses;
+    ? searchQuery.data?.businesses || []
+    : nearbyQuery.data?.businesses || [];
 
   if (!establishments?.length) {
     return (
