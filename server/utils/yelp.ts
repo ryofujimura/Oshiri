@@ -19,6 +19,7 @@ interface SearchParams {
   categories?: string;
   price?: string;
   open_now?: boolean;
+  term?: string;
 }
 
 export async function searchEstablishments(params: SearchParams): Promise<SearchResponse> {
@@ -30,8 +31,9 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
 
     // Set default parameters
     const searchParams = {
+      term: params.term || '',
       categories: 'restaurants,cafes',
-      limit: 20,
+      limit: params.limit || 20,
       ...params,
     };
 
@@ -58,12 +60,14 @@ export async function getEstablishmentDetails(yelpId: string): Promise<Business>
 export async function searchNearbyEstablishments(
   latitude: number,
   longitude: number,
-  radius: number = 1000 // Default 1km radius
+  radius: number = 1000, // Default 1km radius
+  term?: string
 ): Promise<SearchResponse> {
   return searchEstablishments({
     latitude,
     longitude,
     radius,
+    term,
     categories: 'restaurants,cafes',
     sort_by: 'distance'
   });
