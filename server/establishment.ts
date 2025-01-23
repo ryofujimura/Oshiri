@@ -17,14 +17,12 @@ export function setupEstablishmentRoutes(app: Express) {
     try {
       const { latitude, longitude, location, radius, limit, term } = req.query;
 
-      // Early validation - ensure either location or coordinates are provided and valid
-      if (!location && (!latitude || !longitude)) {
-        return res.status(400).json({ 
-          message: "Please provide either a location (city, address) or wait for location detection to complete" 
-        });
-      }
+      // Prepare search parameters
+      const searchParams: any = {
+        categories: 'restaurants,cafes',
+      };
 
-      // If coordinates are provided, validate them
+      // Handle coordinates-based search
       if (latitude && longitude) {
         const lat = parseFloat(latitude as string);
         const lng = parseFloat(longitude as string);
@@ -32,43 +30,56 @@ export function setupEstablishmentRoutes(app: Express) {
         if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
           return res.status(400).json({ message: "Invalid coordinates provided" });
         }
+
+        searchParams.latitude = lat;
+        searchParams.longitude = lng;
+        searchParams.sort_by = 'distance';
+      }
+      // Handle location-based search
+      else if (location) {
+        if (location.toString().trim() === '') {
+          return res.status(400).json({ message: "Please enter a valid location" });
+        }
+        searchParams.location = location.toString().trim();
+        searchParams.sort_by = 'best_match';
+      }
+      // If neither coordinates nor location provided
+      else {
+        return res.status(400).json({ 
+          message: "Please provide either a location (city, address) or wait for location detection to complete" 
+        });
       }
 
-      // If location is provided, validate it's not empty
-      if (location && location.toString().trim() === '') {
-        return res.status(400).json({ message: "Please enter a valid location" });
-      }
+      // Add optional parameters
+      if (radius) searchParams.radius = parseInt(radius as string);
+      if (limit) searchParams.limit = parseInt(limit as string);
+      if (term) searchParams.term = term;
 
-      const searchResults = await searchEstablishments({
-        latitude: latitude ? parseFloat(latitude as string) : undefined,
-        longitude: longitude ? parseFloat(longitude as string) : undefined,
-        location: location ? location.toString().trim() : undefined,
-        radius: radius ? parseInt(radius as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-        term: term as string | undefined,
-        categories: 'restaurants,cafes',
-        sort_by: location ? 'best_match' : 'distance'
-      });
-
+      const searchResults = await searchEstablishments(searchParams);
       res.json(searchResults);
     } catch (error: any) {
       console.error('Error searching establishments:', error);
 
       // Parse Yelp API error message if available
-      const errorMessage = error.response?.body ? 
-        JSON.parse(error.response.body).error?.description : 
-        error.message;
+      let errorMessage = 'Error searching establishments. Please try again.';
 
-      // Return user-friendly error message
-      if (errorMessage.includes("is too short")) {
-        res.status(400).json({ 
-          message: "Please provide a more specific location" 
-        });
-      } else {
-        res.status(error.statusCode || 500).json({ 
-          message: errorMessage || 'Error searching establishments. Please try again.' 
-        });
+      try {
+        if (error.response?.body) {
+          const yelpError = JSON.parse(error.response.body).error;
+          if (yelpError?.description) {
+            errorMessage = yelpError.description;
+            if (errorMessage.includes("is too short")) {
+              errorMessage = "Please provide a more specific location";
+            }
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        console.error('Error parsing Yelp error response:', parseError);
       }
+
+      res.status(error.statusCode || 500).json({ message: errorMessage });
     }
   });
 
