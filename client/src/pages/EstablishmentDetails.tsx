@@ -341,8 +341,9 @@ export default function EstablishmentDetails() {
             <Card className="p-4 bg-primary/5 border-primary/10">
               <p className="text-sm text-muted-foreground">
                 <Link href="/auth">
-                  <Button variant="link" className="p-0 h-auto">Sign in</Button>
-                </Link>{" "}to add your seat review and help others find the perfect spot!
+                  <a className="text-primary hover:text-primary/80 font-medium">Sign in</a>
+                </Link>{" "}
+                to add your seat review and help others find the perfect spot!
               </p>
             </Card>
           )}

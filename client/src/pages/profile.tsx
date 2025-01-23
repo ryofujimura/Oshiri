@@ -31,23 +31,57 @@ interface EditFormData {
   description: string;
 }
 
+interface Seat {
+  id: number;
+  type: string;
+  capacity: number;
+  comfortRating: string;
+  hasPowerOutlet: boolean;
+  noiseLevel?: string;
+  description?: string;
+  establishment: {
+    name: string;
+  };
+  user: {
+    username: string;
+  };
+  createdAt: string;
+}
+
+interface EditRequest {
+  id: number;
+  seat: Seat;
+  type?: string;
+  capacity?: number;
+  comfortRating?: string;
+  hasPowerOutlet?: boolean;
+  noiseLevel?: string;
+  description?: string;
+  requestType: 'edit' | 'delete';
+  status: string;
+  user: {
+    username: string;
+  };
+  createdAt: string;
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedReview, setSelectedReview] = useState(null);
+  const [selectedReview, setSelectedReview] = useState<Seat | EditRequest | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const { register, handleSubmit, reset } = useForm<EditFormData>();
 
   // Query for reviews - if admin, gets all reviews, otherwise just user's reviews
-  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
+  const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
     queryKey: ['/api/users/reviews'],
     enabled: !!user,
   });
 
   // Query for edit requests - admin only
-  const { data: editRequests, isLoading: isLoadingRequests } = useQuery({
+  const { data: editRequests = [], isLoading: isLoadingRequests } = useQuery({
     queryKey: ['/api/users/edit-requests'],
     enabled: !!user && user.role === 'admin',
   });
@@ -122,7 +156,7 @@ export default function ProfilePage() {
     if (!selectedReview) return;
 
     editReviewMutation.mutate({
-      reviewId: selectedReview.id,
+      reviewId: ('seat' in selectedReview) ? selectedReview.seat.id : selectedReview.id,
       type: 'edit',
       data,
     });
@@ -399,7 +433,7 @@ export default function ProfilePage() {
             <DialogHeader>
               <DialogTitle>Preview Changes</DialogTitle>
             </DialogHeader>
-            {selectedReview && (
+            {selectedReview && 'seat' in selectedReview && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <p><strong>Original Review:</strong></p>
