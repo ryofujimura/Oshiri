@@ -38,6 +38,26 @@ export const seats = pgTable("seats", {
   description: text("description"),
   upvotes: integer("upvotes").default(0).notNull(),
   downvotes: integer("downvotes").default(0).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default('active'),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// New table for tracking seat review edit requests
+export const seatEditRequests = pgTable("seat_edit_requests", {
+  id: serial("id").primaryKey(),
+  seatId: integer("seat_id").references(() => seats.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: varchar("type", { length: 50 }), 
+  capacity: integer("capacity"), 
+  comfortRating: varchar("comfort_rating", { length: 20 }), 
+  hasPowerOutlet: boolean("has_power_outlet"),
+  noiseLevel: varchar("noise_level", { length: 20 }), 
+  description: text("description"),
+  requestType: varchar("request_type", { length: 20 }).notNull(), // 'edit' or 'delete'
+  status: varchar("status", { length: 20 }).notNull().default('pending'), // pending, approved, rejected
+  adminId: integer("admin_id").references(() => users.id),
+  adminNote: text("admin_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -51,7 +71,7 @@ export const images = pgTable("images", {
   height: integer("height"),
   format: varchar("format", { length: 10 }),
   metadata: jsonb("metadata"),
-  moderationStatus: varchar("moderation_status", { length: 20 }).notNull().default('pending'), 
+  moderationStatus: varchar("status", { length: 20 }).notNull().default('pending'), // Fix column name
   moderatedBy: integer("moderated_by").references(() => users.id),
   moderatedAt: timestamp("moderated_at"),
   createdAt: timestamp("created_at").defaultNow().notNull()
@@ -81,16 +101,15 @@ export const establishmentTags = pgTable("establishment_tags", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+// Relations
 export const userRelations = relations(users, ({ many }) => ({
   seats: many(seats),
-  wifiSpeeds: many(wifiSpeeds),
-  establishmentTags: many(establishmentTags)
+  editRequests: many(seatEditRequests),
+  moderatedImages: many(images, { relationName: 'moderator' })
 }));
 
 export const establishmentRelations = relations(establishments, ({ many }) => ({
-  seats: many(seats),
-  wifiSpeeds: many(wifiSpeeds),
-  tags: many(establishmentTags)
+  seats: many(seats)
 }));
 
 export const seatRelations = relations(seats, ({ one, many }) => ({
@@ -102,7 +121,8 @@ export const seatRelations = relations(seats, ({ one, many }) => ({
     fields: [seats.userId],
     references: [users.id],
   }),
-  images: many(images)
+  images: many(images),
+  editRequests: many(seatEditRequests)
 }));
 
 export const imageRelations = relations(images, ({ one }) => ({
@@ -116,6 +136,22 @@ export const imageRelations = relations(images, ({ one }) => ({
   })
 }));
 
+export const seatEditRequestRelations = relations(seatEditRequests, ({ one }) => ({
+  seat: one(seats, {
+    fields: [seatEditRequests.seatId],
+    references: [seats.id],
+  }),
+  user: one(users, {
+    fields: [seatEditRequests.userId],
+    references: [users.id],
+  }),
+  admin: one(users, {
+    fields: [seatEditRequests.adminId],
+    references: [users.id],
+  })
+}));
+
+// Schemas
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export type InsertUser = typeof users.$inferInsert;
@@ -145,3 +181,8 @@ export const insertTagSchema = createInsertSchema(tags);
 export const selectTagSchema = createSelectSchema(tags);
 export type InsertTag = typeof tags.$inferInsert;
 export type SelectTag = typeof tags.$inferSelect;
+
+export const insertSeatEditRequestSchema = createInsertSchema(seatEditRequests);
+export const selectSeatEditRequestSchema = createSelectSchema(seatEditRequests);
+export type InsertSeatEditRequest = typeof seatEditRequests.$inferInsert;
+export type SelectSeatEditRequest = typeof seatEditRequests.$inferSelect;

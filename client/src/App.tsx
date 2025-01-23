@@ -7,6 +7,7 @@ import Home from "@/pages/Home";
 import Search from "@/pages/Search";
 import NearMe from "@/pages/NearMe";
 import EstablishmentDetails from "@/pages/EstablishmentDetails";
+import Profile from "@/pages/profile";
 
 function Router() {
   return (
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/search" component={Search} />
       <Route path="/near-me" component={NearMe} />
       <Route path="/establishments/:yelpId" component={EstablishmentDetails} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );
