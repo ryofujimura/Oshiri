@@ -16,20 +16,26 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-interface EditFormData {
-  type: string;
-  capacity: number;
-  comfortRating: string;
-  hasPowerOutlet: boolean;
-  noiseLevel: string;
-  description: string;
-}
+const seatReviewSchema = z.object({
+  type: z.string().min(1, 'Please select a seat type'),
+  capacity: z.coerce.number().optional(),
+  comfortRating: z.string().optional(),
+  hasPowerOutlet: z.boolean().optional().default(false),
+  noiseLevel: z.string().optional(),
+  description: z.string().optional(),
+});
+
+type SeatReview = z.infer<typeof seatReviewSchema>;
 
 interface Seat {
   id: number;
@@ -72,7 +78,14 @@ export default function ProfilePage() {
   const [selectedReview, setSelectedReview] = useState<Seat | EditRequest | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
-  const { register, handleSubmit, reset } = useForm<EditFormData>();
+
+  const form = useForm<SeatReview>({
+    resolver: zodResolver(seatReviewSchema),
+    defaultValues: {
+      hasPowerOutlet: false,
+      capacity: 1,
+    },
+  });
 
   // Query for reviews - if admin, gets all reviews, otherwise just user's reviews
   const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
@@ -110,7 +123,7 @@ export default function ProfilePage() {
         description: user?.role === 'admin' ? 'Review updated successfully' : 'Edit request submitted successfully',
       });
       setIsEditDialogOpen(false);
-      reset();
+      form.reset();
       queryClient.invalidateQueries({ queryKey: ['/api/users/reviews'] });
     },
     onError: (error: any) => {
@@ -122,37 +135,7 @@ export default function ProfilePage() {
     },
   });
 
-  // Mutation for handling admin actions on edit requests
-  const handleAdminActionMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: number, action: 'approve' | 'reject' }) => {
-      const response = await fetch(`/api/edit-requests/${requestId}/${action}`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      return response.json();
-    },
-    onSuccess: (_, { action }) => {
-      toast({
-        title: 'Success',
-        description: `Request ${action}ed successfully`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/edit-requests'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const onEditSubmit = async (data: EditFormData) => {
+  const onEditSubmit = async (data: SeatReview) => {
     if (!selectedReview) return;
 
     editReviewMutation.mutate({
@@ -169,6 +152,7 @@ export default function ProfilePage() {
     });
   };
 
+  // JSX remains the same until the edit dialog
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -243,7 +227,7 @@ export default function ProfilePage() {
                 <div className="flex justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              ) : !reviews?.length ? (
+              ) : !reviews.length ? (
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-center text-muted-foreground">
@@ -252,7 +236,7 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
               ) : (
-                reviews?.map((review) => (
+                reviews.map((review: Seat) => (
                   <Card key={review.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -270,7 +254,14 @@ export default function ProfilePage() {
                             onClick={() => {
                               setSelectedReview(review);
                               setIsEditDialogOpen(true);
-                              reset(review);
+                              form.reset({
+                                type: review.type,
+                                capacity: review.capacity,
+                                comfortRating: review.comfortRating,
+                                hasPowerOutlet: review.hasPowerOutlet,
+                                noiseLevel: review.noiseLevel,
+                                description: review.description,
+                              });
                             }}
                           >
                             <PenSquare className="h-4 w-4" />
@@ -308,7 +299,7 @@ export default function ProfilePage() {
                   <div className="flex justify-center">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : !editRequests?.length ? (
+                ) : !editRequests.length ? (
                   <Card>
                     <CardContent className="pt-6">
                       <p className="text-center text-muted-foreground">
@@ -317,7 +308,7 @@ export default function ProfilePage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  editRequests?.map((request) => (
+                  editRequests.map((request: EditRequest) => (
                     <Card key={request.id}>
                       <CardHeader>
                         <div className="flex justify-between items-start">
@@ -401,29 +392,148 @@ export default function ProfilePage() {
             <DialogHeader>
               <DialogTitle>Edit Review</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="type">Seat Type</Label>
-                <Input id="type" {...register('type')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="comfortRating">Comfort Rating</Label>
-                <Input id="comfortRating" {...register('comfortRating')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="noiseLevel">Noise Level</Label>
-                <Input id="noiseLevel" {...register('noiseLevel')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" {...register('description')} />
-              </div>
-              <DialogFooter>
-                <Button type="submit">
-                  {user.role === 'admin' ? 'Save Changes' : 'Submit for Review'}
-                </Button>
-              </DialogFooter>
-            </form>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Seat Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a seat type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="chair">Chair</SelectItem>
+                          <SelectItem value="sofa">Sofa</SelectItem>
+                          <SelectItem value="bench">Bench</SelectItem>
+                          <SelectItem value="stool">Stool</SelectItem>
+                          <SelectItem value="booth">Booth</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="capacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capacity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="comfortRating"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Comfort Rating</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select comfort level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Comfortable">Comfortable</SelectItem>
+                          <SelectItem value="Moderate">Moderate</SelectItem>
+                          <SelectItem value="Hard">Hard</SelectItem>
+                          <SelectItem value="Torn">Torn/Damaged</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="noiseLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Noise Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select noise level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Quiet">Quiet</SelectItem>
+                          <SelectItem value="Moderate">Moderate</SelectItem>
+                          <SelectItem value="Loud">Loud</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hasPowerOutlet"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Power Outlet Available</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Comments</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Share more details about your experience..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="submit">
+                    {editReviewMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      user?.role === 'admin' ? 'Save Changes' : 'Submit for Review'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
 
