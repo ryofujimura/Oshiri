@@ -2,7 +2,7 @@ import { AuthButton } from '@/components/auth/AuthButton';
 import { MainNav } from '@/components/layout/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Search, MapPin, Star, Power, Volume2, Sofa, Users, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -38,7 +38,11 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <Link href="/">
+                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  Oshiri
+                </a>
+              </Link>
               <MainNav />
             </div>
             <AuthButton />
@@ -60,8 +64,8 @@ export default function Home() {
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/search')}
                 >
@@ -72,8 +76,8 @@ export default function Home() {
                   </div>
                 </Button>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/near-me')}
                 >
@@ -84,8 +88,8 @@ export default function Home() {
                   </div>
                 </Button>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/top-rated')}
                 >
@@ -240,8 +244,8 @@ export default function Home() {
               Join our growing community and start discovering comfortable spaces
               that match your needs. Share your experiences and help others!
             </p>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={() => setLocation('/search')}
               className="gap-2"
             >

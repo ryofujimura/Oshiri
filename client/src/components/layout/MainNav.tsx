@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Menu, Search, MapPin, Home, Star, User, X } from 'lucide-react';
+import { Menu, Search, MapPin, Star, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const routes = [
-  {
-    title: 'Home',
-    href: '/',
-    icon: Home,
-  },
   {
     title: 'Search',
     href: '/search',

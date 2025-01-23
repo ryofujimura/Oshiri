@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search as SearchIcon } from 'lucide-react';
 import { EstablishmentGrid } from '@/components/establishment/EstablishmentGrid';
+import { Link } from 'wouter';
 
 export default function NearMe() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +22,11 @@ export default function NearMe() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <Link href="/">
+                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  Oshiri
+                </a>
+              </Link>
               <MainNav />
             </div>
             <AuthButton />

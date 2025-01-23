@@ -116,12 +116,15 @@ export default function EstablishmentDetails() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with Navigation */}
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <Link href="/">
+                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  Oshiri
+                </a>
+              </Link>
               <MainNav />
             </div>
             <AuthButton />
