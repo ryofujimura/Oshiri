@@ -11,11 +11,13 @@ export function setupUserRoutes(app: Express) {
         return res.status(401).json({ message: "Must be logged in to view reviews" });
       }
 
+      // If admin, can view all reviews. Otherwise, only user's own reviews
       const userReviews = await db.query.seats.findMany({
-        where: eq(seats.userId, req.user.id),
+        where: req.user.role === 'admin' ? undefined : eq(seats.userId, req.user.id),
         orderBy: [desc(seats.createdAt)],
         with: {
           establishment: true,
+          user: true,
           editRequests: {
             where: eq(seatEditRequests.status, 'pending')
           }
@@ -29,7 +31,7 @@ export function setupUserRoutes(app: Express) {
     }
   });
 
-  // Submit edit/delete request
+  // Submit edit/delete request with draft changes
   app.post("/api/seats/:seatId/requests", async (req: Request, res: Response) => {
     try {
       if (!req.user) {
@@ -39,7 +41,7 @@ export function setupUserRoutes(app: Express) {
       const { seatId } = req.params;
       const { type, ...changes } = req.body;
 
-      // Check if seat exists and belongs to user
+      // Check if seat exists
       const [seat] = await db
         .select()
         .from(seats)
@@ -50,11 +52,32 @@ export function setupUserRoutes(app: Express) {
         return res.status(404).json({ message: "Review not found" });
       }
 
-      if (seat.userId !== req.user.id && req.user.role !== 'admin') {
+      // Admin can directly edit/delete
+      if (req.user.role === 'admin') {
+        if (type === 'delete') {
+          await db
+            .update(seats)
+            .set({ status: 'deleted' })
+            .where(eq(seats.id, parseInt(seatId)));
+
+          return res.json({ message: "Review deleted successfully" });
+        } else {
+          const [updatedSeat] = await db
+            .update(seats)
+            .set({ ...changes, updatedAt: new Date() })
+            .where(eq(seats.id, parseInt(seatId)))
+            .returning();
+
+          return res.json(updatedSeat);
+        }
+      }
+
+      // Regular users must submit edit request
+      if (seat.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to modify this review" });
       }
 
-      // Create edit request
+      // Create edit request with draft changes
       const [editRequest] = await db
         .insert(seatEditRequests)
         .values({
@@ -66,7 +89,10 @@ export function setupUserRoutes(app: Express) {
         })
         .returning();
 
-      res.json(editRequest);
+      res.json({
+        ...editRequest,
+        message: "Your edit request has been submitted for admin approval"
+      });
     } catch (error: any) {
       console.error('Error submitting edit request:', error);
       res.status(500).json({ message: error.message });
@@ -86,7 +112,12 @@ export function setupUserRoutes(app: Express) {
         with: {
           seat: {
             with: {
-              establishment: true
+              establishment: true,
+              user: {
+                columns: {
+                  username: true
+                }
+              }
             }
           },
           user: {
@@ -117,7 +148,7 @@ export function setupUserRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid action" });
       }
 
-      // Get the edit request
+      // Get the edit request with current seat data
       const [editRequest] = await db
         .select()
         .from(seatEditRequests)
@@ -160,6 +191,13 @@ export function setupUserRoutes(app: Express) {
             description: editRequest.description,
             updatedAt: new Date()
           };
+
+          // Remove null values from changes
+          Object.keys(changes).forEach(key => {
+            if (changes[key] === null) {
+              delete changes[key];
+            }
+          });
 
           await db
             .update(seats)

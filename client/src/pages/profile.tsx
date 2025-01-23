@@ -1,43 +1,64 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PenSquare, Trash2 } from 'lucide-react';
+import { Loader2, PenSquare, Trash2, Eye } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
+import { useForm } from 'react-hook-form';
+
+interface EditFormData {
+  type: string;
+  capacity: number;
+  comfortRating: string;
+  hasPowerOutlet: boolean;
+  noiseLevel: string;
+  description: string;
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const { register, handleSubmit, reset, setValue } = useForm<EditFormData>();
 
+  // Query for reviews - if admin, gets all reviews, otherwise just user's reviews
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
     queryKey: ['/api/users/reviews'],
     enabled: !!user,
   });
 
+  // Query for edit requests - admin only
   const { data: editRequests, isLoading: isLoadingRequests } = useQuery({
     queryKey: ['/api/users/edit-requests'],
     enabled: !!user && user.role === 'admin',
   });
 
-  const handleEditRequest = async (reviewId: number, type: 'edit' | 'delete') => {
-    try {
+  // Mutation for handling review edits/deletes
+  const editReviewMutation = useMutation({
+    mutationFn: async ({ reviewId, type, data }: { reviewId: number, type: 'edit' | 'delete', data?: any }) => {
       const response = await fetch(`/api/seats/${reviewId}/requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type, ...data }),
         credentials: 'include',
       });
 
@@ -45,23 +66,29 @@ export default function ProfilePage() {
         throw new Error(await response.text());
       }
 
+      return response.json();
+    },
+    onSuccess: () => {
       toast({
         title: 'Success',
-        description: `${type === 'edit' ? 'Edit' : 'Delete'} request submitted successfully`,
+        description: user?.role === 'admin' ? 'Review updated successfully' : 'Edit request submitted successfully',
       });
-
+      setIsEditDialogOpen(false);
+      reset();
       queryClient.invalidateQueries({ queryKey: ['/api/users/reviews'] });
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
       });
-    }
-  };
+    },
+  });
 
-  const handleAdminAction = async (requestId: number, action: 'approve' | 'reject') => {
-    try {
+  // Mutation for handling admin actions on edit requests
+  const handleAdminActionMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: number, action: 'approve' | 'reject' }) => {
       const response = await fetch(`/api/edit-requests/${requestId}/${action}`, {
         method: 'POST',
         credentials: 'include',
@@ -71,19 +98,39 @@ export default function ProfilePage() {
         throw new Error(await response.text());
       }
 
+      return response.json();
+    },
+    onSuccess: (_, { action }) => {
       toast({
         title: 'Success',
-        description: `Request ${action}d successfully`,
+        description: `Request ${action}ed successfully`,
       });
-
       queryClient.invalidateQueries({ queryKey: ['/api/users/edit-requests'] });
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
       });
-    }
+    },
+  });
+
+  const onEditSubmit = async (data: EditFormData) => {
+    if (!selectedReview) return;
+
+    editReviewMutation.mutate({
+      reviewId: selectedReview.id,
+      type: 'edit',
+      data,
+    });
+  };
+
+  const handleDelete = async (reviewId: number) => {
+    editReviewMutation.mutate({
+      reviewId,
+      type: 'delete',
+    });
   };
 
   if (!user) {
@@ -105,13 +152,16 @@ export default function ProfilePage() {
           <CardTitle>Profile</CardTitle>
           <CardDescription>
             Welcome back, {user.username}!
+            {user.role === 'admin' && ' (Admin)'}
           </CardDescription>
         </CardHeader>
       </Card>
 
       <Tabs defaultValue="reviews">
         <TabsList>
-          <TabsTrigger value="reviews">My Reviews</TabsTrigger>
+          <TabsTrigger value="reviews">
+            {user.role === 'admin' ? 'All Reviews' : 'My Reviews'}
+          </TabsTrigger>
           {user.role === 'admin' && (
             <TabsTrigger value="requests">Edit Requests</TabsTrigger>
           )}
@@ -123,22 +173,23 @@ export default function ProfilePage() {
               <div className="flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : reviews?.length === 0 ? (
+            ) : !reviews?.length ? (
               <Card>
                 <CardContent className="pt-6">
                   <p className="text-center text-muted-foreground">
-                    You haven't written any reviews yet.
+                    No reviews found.
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              reviews?.map((review: any) => (
+              reviews?.map((review) => (
                 <Card key={review.id}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{review.establishment.name}</CardTitle>
                         <CardDescription>
+                          {user.role === 'admin' && `By ${review.user.username} • `}
                           Posted on {format(new Date(review.createdAt), 'MMM d, yyyy')}
                         </CardDescription>
                       </div>
@@ -146,7 +197,11 @@ export default function ProfilePage() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => handleEditRequest(review.id, 'edit')}
+                          onClick={() => {
+                            setSelectedReview(review);
+                            setIsEditDialogOpen(true);
+                            reset(review);
+                          }}
                         >
                           <PenSquare className="h-4 w-4" />
                         </Button>
@@ -154,7 +209,7 @@ export default function ProfilePage() {
                           variant="outline"
                           size="icon"
                           className="text-destructive"
-                          onClick={() => handleEditRequest(review.id, 'delete')}
+                          onClick={() => handleDelete(review.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -165,6 +220,8 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <p><strong>Seat Type:</strong> {review.type}</p>
                       <p><strong>Comfort:</strong> {review.comfortRating}</p>
+                      <p><strong>Power Outlet:</strong> {review.hasPowerOutlet ? 'Yes' : 'No'}</p>
+                      <p><strong>Noise Level:</strong> {review.noiseLevel}</p>
                       <p><strong>Description:</strong> {review.description}</p>
                     </div>
                   </CardContent>
@@ -181,7 +238,7 @@ export default function ProfilePage() {
                 <div className="flex justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              ) : editRequests?.length === 0 ? (
+              ) : !editRequests?.length ? (
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-center text-muted-foreground">
@@ -190,7 +247,7 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
               ) : (
-                editRequests?.map((request: any) => (
+                editRequests?.map((request) => (
                   <Card key={request.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -199,38 +256,67 @@ export default function ProfilePage() {
                             {request.requestType === 'edit' ? 'Edit' : 'Delete'} Request
                           </CardTitle>
                           <CardDescription>
-                            By {request.user.username} on{' '}
-                            {format(new Date(request.createdAt), 'MMM d, yyyy')}
+                            By {request.user.username} for review at {request.seat.establishment.name}
+                            <br />
+                            Submitted on {format(new Date(request.createdAt), 'MMM d, yyyy')}
                           </CardDescription>
                         </div>
                         <div className="flex gap-2">
+                          {request.requestType === 'edit' && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedReview(request);
+                                setIsPreviewDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="default"
-                            onClick={() => handleAdminAction(request.id, 'approve')}
+                            onClick={() => handleAdminActionMutation.mutate({
+                              requestId: request.id,
+                              action: 'approve'
+                            })}
                           >
                             Approve
                           </Button>
                           <Button
                             variant="destructive"
-                            onClick={() => handleAdminAction(request.id, 'reject')}
+                            onClick={() => handleAdminActionMutation.mutate({
+                              requestId: request.id,
+                              action: 'reject'
+                            })}
                           >
                             Reject
                           </Button>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <p><strong>Review ID:</strong> {request.seatId}</p>
-                        {request.requestType === 'edit' && (
-                          <>
-                            <p><strong>New Type:</strong> {request.type}</p>
-                            <p><strong>New Comfort Rating:</strong> {request.comfortRating}</p>
-                            <p><strong>New Description:</strong> {request.description}</p>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
+                    {request.requestType === 'edit' && (
+                      <CardContent>
+                        <div className="space-y-2">
+                          <p><strong>Changes requested:</strong></p>
+                          {request.type && (
+                            <p><strong>Type:</strong> {request.type}</p>
+                          )}
+                          {request.comfortRating && (
+                            <p><strong>Comfort Rating:</strong> {request.comfortRating}</p>
+                          )}
+                          {request.hasPowerOutlet !== null && (
+                            <p><strong>Power Outlet:</strong> {request.hasPowerOutlet ? 'Yes' : 'No'}</p>
+                          )}
+                          {request.noiseLevel && (
+                            <p><strong>Noise Level:</strong> {request.noiseLevel}</p>
+                          )}
+                          {request.description && (
+                            <p><strong>Description:</strong> {request.description}</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 ))
               )}
@@ -238,6 +324,67 @@ export default function ProfilePage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Review</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">Seat Type</Label>
+              <Input id="type" {...register('type')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="comfortRating">Comfort Rating</Label>
+              <Input id="comfortRating" {...register('comfortRating')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" {...register('description')} />
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {user.role === 'admin' ? 'Save Changes' : 'Submit for Review'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Preview Changes</DialogTitle>
+          </DialogHeader>
+          {selectedReview && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p><strong>Original Review:</strong></p>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p><strong>Type:</strong> {selectedReview.seat.type}</p>
+                    <p><strong>Comfort:</strong> {selectedReview.seat.comfortRating}</p>
+                    <p><strong>Description:</strong> {selectedReview.seat.description}</p>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-2">
+                <p><strong>Proposed Changes:</strong></p>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p><strong>Type:</strong> {selectedReview.type || selectedReview.seat.type}</p>
+                    <p><strong>Comfort:</strong> {selectedReview.comfortRating || selectedReview.seat.comfortRating}</p>
+                    <p><strong>Description:</strong> {selectedReview.description || selectedReview.seat.description}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
