@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle, MapPin } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { YelpImageCarousel } from './YelpImageCarousel';
+import { useToast } from '@/hooks/use-toast';
 
 interface Establishment {
   id: string;
@@ -31,25 +32,14 @@ interface EstablishmentGridProps {
 type PermissionState = 'granted' | 'denied' | 'prompt';
 
 export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
+  const { toast } = useToast();
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [permissionState, setPermissionState] = useState<PermissionState | null>(null);
 
-  useEffect(() => {
-    // Check if geolocation permissions are already granted
-    if ("permissions" in navigator) {
-      navigator.permissions.query({ name: 'geolocation' })
-        .then(permissionStatus => {
-          setPermissionState(permissionStatus.state);
-          permissionStatus.onchange = () => {
-            setPermissionState(permissionStatus.state);
-          };
-        });
-    }
-  }, []);
-
-  const requestLocation = () => {
+  // Function to request and handle location
+  const requestLocation = async () => {
     if (!("geolocation" in navigator)) {
       setLocationError("Geolocation is not supported by your browser");
       return;
@@ -58,38 +48,81 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     setIsLocating(true);
     setLocationError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoordinates({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          timeout: 10000,
+          enableHighAccuracy: true
         });
-        setLocationError(null);
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        let errorMessage = "Please enable location services or provide a location";
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMessage = "Location access was denied. Please provide a location in the search box.";
-        }
-        setLocationError(errorMessage);
-        setCoordinates(null);
-        setIsLocating(false);
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
+      });
+
+      setCoordinates({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      });
+      setLocationError(null);
+
+      // Show success toast
+      toast({
+        title: "Location detected",
+        description: "Using your current location for search results",
+      });
+    } catch (error: any) {
+      console.error('Geolocation error:', error);
+      let errorMessage = "Please enable location services or provide a location";
+      if (error.code === 1) { // PERMISSION_DENIED
+        errorMessage = "Location access was denied. Please provide a location in the search box.";
+      }
+      setLocationError(errorMessage);
+      setCoordinates(null);
+
+      // Show error toast
+      toast({
+        title: "Location error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLocating(false);
+    }
   };
 
-  // Only try to get location automatically if no manual location is provided
+  // Check permission and request location on mount if no manual location is provided
   useEffect(() => {
-    if (!searchParams?.location && permissionState === 'granted') {
-      requestLocation();
-    } else {
+    const checkPermissionAndLocation = async () => {
+      if (!searchParams?.location && "permissions" in navigator) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+          setPermissionState(permissionStatus.state);
+
+          // If permission is granted, get location immediately
+          if (permissionStatus.state === 'granted') {
+            requestLocation();
+          }
+
+          // Listen for permission changes
+          permissionStatus.onchange = () => {
+            setPermissionState(permissionStatus.state);
+            if (permissionStatus.state === 'granted') {
+              requestLocation();
+            }
+          };
+        } catch (error) {
+          console.error('Permission check error:', error);
+        }
+      }
+    };
+
+    checkPermissionAndLocation();
+  }, [searchParams?.location]);
+
+  // Reset coordinates when manual location is provided
+  useEffect(() => {
+    if (searchParams?.location) {
       setCoordinates(null);
       setIsLocating(false);
     }
-  }, [searchParams?.location, permissionState]);
+  }, [searchParams?.location]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['establishments', searchParams?.term, searchParams?.location || coordinates?.latitude],
@@ -138,7 +171,9 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  const showLocationButton = !coordinates && !searchParams?.location && !isLocating;
+  // Only show location button if permission is denied or not granted and no manual location
+  const showLocationButton = !coordinates && !searchParams?.location && 
+    !isLocating && permissionState !== 'granted';
 
   if (showLocationButton) {
     return (
