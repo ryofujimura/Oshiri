@@ -13,9 +13,10 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, X } from 'lucide-react';
 
+// Update schema to enforce proper types
 const seatReviewSchema = z.object({
   type: z.string().min(1, 'Please select a seat type'),
-  capacity: z.string().transform(Number),
+  capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
   comfortRating: z.string().min(1, 'Please select a comfort rating'),
   hasPowerOutlet: z.boolean(),
   noiseLevel: z.string().min(1, 'Please select a noise level'),
@@ -40,6 +41,7 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
     resolver: zodResolver(seatReviewSchema),
     defaultValues: {
       hasPowerOutlet: false,
+      capacity: 1,
     },
   });
 
@@ -76,9 +78,15 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
     mutationFn: async (data: SeatReview) => {
       const formData = new FormData();
 
-      // Append review data
+      // Append review data with proper type conversion
       Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value.toString());
+        if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else if (typeof value === 'number') {
+          formData.append(key, value.toString());
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, value);
+        }
       });
 
       // Append images
@@ -169,7 +177,12 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
                 <FormItem>
                   <FormLabel>Capacity</FormLabel>
                   <FormControl>
-                    <Input type="number" min="1" {...field} />
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
