@@ -17,10 +17,10 @@ export function setupEstablishmentRoutes(app: Express) {
     try {
       const { latitude, longitude, location, radius, limit, term } = req.query;
 
-      // Validate that either location or coordinates are provided
+      // Early validation - ensure either location or coordinates are provided and valid
       if (!location && (!latitude || !longitude)) {
         return res.status(400).json({ 
-          message: "Please provide either a location (city, address) or coordinates (latitude/longitude)" 
+          message: "Please provide either a location (city, address) or wait for location detection to complete" 
         });
       }
 
@@ -34,10 +34,15 @@ export function setupEstablishmentRoutes(app: Express) {
         }
       }
 
+      // If location is provided, validate it's not empty
+      if (location && location.toString().trim() === '') {
+        return res.status(400).json({ message: "Please enter a valid location" });
+      }
+
       const searchResults = await searchEstablishments({
         latitude: latitude ? parseFloat(latitude as string) : undefined,
         longitude: longitude ? parseFloat(longitude as string) : undefined,
-        location: location as string | undefined,
+        location: location ? location.toString().trim() : undefined,
         radius: radius ? parseInt(radius as string) : undefined,
         limit: limit ? parseInt(limit as string) : undefined,
         term: term as string | undefined,
@@ -48,13 +53,17 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(searchResults);
     } catch (error: any) {
       console.error('Error searching establishments:', error);
-      // Parse Yelp API error message if available
-      const errorBody = error.response?.body ? JSON.parse(error.response.body) : null;
-      const errorMessage = errorBody?.error?.description || error.message;
 
-      // Return appropriate status code and message
-      if (errorBody?.error?.code === 'VALIDATION_ERROR') {
-        res.status(400).json({ message: errorMessage || 'Invalid search parameters provided.' });
+      // Parse Yelp API error message if available
+      const errorMessage = error.response?.body ? 
+        JSON.parse(error.response.body).error?.description : 
+        error.message;
+
+      // Return user-friendly error message
+      if (errorMessage.includes("is too short")) {
+        res.status(400).json({ 
+          message: "Please provide a more specific location" 
+        });
       } else {
         res.status(error.statusCode || 500).json({ 
           message: errorMessage || 'Error searching establishments. Please try again.' 

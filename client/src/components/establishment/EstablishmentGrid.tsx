@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
@@ -34,6 +34,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   useEffect(() => {
     if ((!searchParams?.location || searchParams.location.trim() === '') && "geolocation" in navigator) {
       setIsLocating(true);
+      setLocationError(null);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCoordinates({
@@ -45,10 +47,15 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         },
         (error) => {
           console.error('Geolocation error:', error);
-          setLocationError("Please enable location services or provide a location");
+          let errorMessage = "Please enable location services or provide a location";
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = "Location access was denied. Please provide a location in the search box.";
+          }
+          setLocationError(errorMessage);
           setCoordinates(null);
           setIsLocating(false);
-        }
+        },
+        { timeout: 10000 } // 10 second timeout
       );
     } else {
       setCoordinates(null);
@@ -71,7 +78,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       } else if (coordinates) {
         params.append('latitude', coordinates.latitude.toString());
         params.append('longitude', coordinates.longitude.toString());
-      } else {
+      } else if (!isLocating) {
         throw new Error("Please provide a location or enable location services");
       }
 
@@ -91,9 +98,14 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   if (isLocating) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" />
-        <span>Detecting your location...</span>
+      <div className="flex flex-col items-center justify-center gap-4 py-8">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span>Detecting your location...</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          You can also enter a location manually in the search box above
+        </p>
       </div>
     );
   }
@@ -102,7 +114,9 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     return (
       <Alert variant="destructive" className="my-4">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{locationError}</AlertDescription>
+        <AlertDescription>
+          {locationError}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -127,7 +141,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   if (!data?.businesses?.length) {
     return (
       <Alert className="my-4">
-        <AlertDescription>No establishments found. Try adjusting your search criteria.</AlertDescription>
+        <MapPin className="h-4 w-4" />
+        <AlertDescription>
+          No establishments found. Try adjusting your search criteria or providing a different location.
+        </AlertDescription>
       </Alert>
     );
   }
