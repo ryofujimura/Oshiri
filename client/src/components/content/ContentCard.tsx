@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Trash, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Trash, Edit, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,10 @@ interface Image {
   id: number;
   imageUrl: string;
   contentId: number;
+  publicId: string;
+  width?: number;
+  height?: number;
+  format?: string;
 }
 
 interface Content {
@@ -32,6 +36,7 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageError, setImageError] = useState<Record<number, boolean>>({});
 
   const vote = useMutation({
     mutationFn: async ({ type }: { type: 'up' | 'down' }) => {
@@ -92,15 +97,21 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
   });
 
   const nextImage = () => {
+    if (!content.images || content.images.length <= 1) return;
     setCurrentImageIndex((prev) => 
       prev === content.images.length - 1 ? 0 : prev + 1
     );
   };
 
   const previousImage = () => {
+    if (!content.images || content.images.length <= 1) return;
     setCurrentImageIndex((prev) => 
       prev === 0 ? content.images.length - 1 : prev - 1
     );
+  };
+
+  const handleImageError = (index: number) => {
+    setImageError(prev => ({ ...prev, [index]: true }));
   };
 
   return (
@@ -109,19 +120,26 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
         <h3 className="text-lg font-semibold">{content.title}</h3>
       </CardHeader>
       <CardContent>
-        {content.images && content.images.length > 0 && (
+        {content.images && content.images.length > 0 ? (
           <div className="relative">
-            <img 
-              src={content.images[currentImageIndex].imageUrl} 
-              alt={`${content.title} - Image ${currentImageIndex + 1}`}
-              className="w-full h-48 object-cover mb-4 rounded-md"
-            />
+            {imageError[currentImageIndex] ? (
+              <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                <ImageOff className="w-8 h-8 text-gray-400" />
+              </div>
+            ) : (
+              <img 
+                src={content.images[currentImageIndex].imageUrl} 
+                alt={`${content.title} - Image ${currentImageIndex + 1}`}
+                className="w-full h-48 object-cover mb-4 rounded-md"
+                onError={() => handleImageError(currentImageIndex)}
+              />
+            )}
             {content.images.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
                   onClick={previousImage}
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -129,7 +147,7 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
                   onClick={nextImage}
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -146,6 +164,10 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
                 </div>
               </>
             )}
+          </div>
+        ) : (
+          <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-md mb-4">
+            <ImageOff className="w-8 h-8 text-gray-400" />
           </div>
         )}
         <p className="text-sm text-gray-600">{content.description}</p>

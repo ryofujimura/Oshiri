@@ -30,7 +30,7 @@ export async function uploadImage(
   try {
     // Verify Cloudinary configuration
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      throw new Error('Missing Cloudinary configuration');
+      throw new Error('Missing Cloudinary configuration. Please check your environment variables.');
     }
 
     // Default transformations if none provided
@@ -47,6 +47,11 @@ export async function uploadImage(
       resource_type: 'auto',
       background_removal: options.background_removal ? 'cloudinary_ai' : undefined,
     };
+
+    // Verify file exists and is readable
+    if (!fs.existsSync(file.path)) {
+      throw new Error('File not found or not accessible');
+    }
 
     // Upload the file
     const result = await cloudinary.uploader.upload(file.path, uploadOptions);
@@ -82,6 +87,8 @@ export async function uploadImage(
       throw new Error('Image file is too large. Please upload a smaller image.');
     } else if (error.http_code === 415) {
       throw new Error('Unsupported image format. Please use a different image format.');
+    } else if (error.message.includes('Missing Cloudinary configuration')) {
+      throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
     }
 
     throw new Error('Failed to upload image: ' + (error.message || 'Unknown error'));
@@ -92,6 +99,11 @@ export async function deleteImage(publicId: string): Promise<void> {
   try {
     if (!publicId) {
       throw new Error('Public ID is required for deletion');
+    }
+
+    // Verify Cloudinary configuration
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      throw new Error('Missing Cloudinary configuration. Please check your environment variables.');
     }
 
     await cloudinary.uploader.destroy(publicId);
