@@ -336,7 +336,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       {establishments.map((establishment: Establishment, index: number) => {
         const items = [];
 
-        // Add the establishment card
         items.push(
           <Link
             key={establishment.id}
@@ -347,20 +346,23 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
               <CardContent className="p-0">
                 <div className="grid grid-cols-5 h-full">
                   <div className="col-span-2 relative h-full min-h-[200px]">
-                    {establishment.photos && establishment.photos.length > 0 ? (
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                      <img
+                        src="/placeholder-restaurant.png"
+                        alt="Loading..."
+                        className="w-12 h-12 opacity-50"
+                      />
+                    </div>
+                    {establishment.photos && establishment.photos.length > 0 && (
                       <img
                         src={establishment.photos[0]}
                         alt={`${establishment.name}`}
-                        className="absolute inset-0 w-full h-full object-cover rounded-l-lg"
+                        className="absolute inset-0 w-full h-full object-cover rounded-l-lg transition-opacity duration-300"
+                        onLoad={(e) => {
+                          (e.target as HTMLImageElement).style.opacity = '1';
+                        }}
+                        style={{ opacity: 0 }}
                       />
-                    ) : (
-                      <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                        <img
-                          src="/placeholder-restaurant.png"
-                          alt="No image available"
-                          className="w-12 h-12 opacity-50"
-                        />
-                      </div>
                     )}
                   </div>
 
@@ -381,12 +383,11 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
           </Link>
         );
 
-        // Add an AdSense ad after every 4 establishments (but not after the last one)
         if ((index + 1) % 4 === 0 && index !== establishments.length - 1) {
           items.push(
             <div key={`ad-${index}`} className="col-span-full">
               <AdSense
-                slot="1234567890" // Replace with your actual ad slot ID
+                slot="1234567890"
                 format="auto"
                 className="w-full min-h-[90px] bg-gray-50"
               />
