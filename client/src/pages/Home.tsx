@@ -52,7 +52,7 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Find Your Perfect Seat 🪑
+                Find Your Perfect Seat <Sofa className="inline-block h-12 w-12 ml-2" />
               </h2>
               <p className="text-xl text-muted-foreground mb-12">
                 Discover and rate the most comfortable seats in cafes and restaurants.
