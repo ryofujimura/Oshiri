@@ -30,11 +30,11 @@ export const seats = pgTable("seats", {
   id: serial("id").primaryKey(),
   establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  type: varchar("type", { length: 50 }).notNull(), // e.g., "chair", "sofa", "bench"
-  capacity: integer("capacity").notNull(), // number of people it can seat
-  comfortRating: varchar("comfort_rating", { length: 20 }).notNull(), // "Hard", "Comfortable", "Torn"
+  type: varchar("type", { length: 50 }).notNull(), 
+  capacity: integer("capacity").notNull(), 
+  comfortRating: varchar("comfort_rating", { length: 20 }).notNull(), 
   hasPowerOutlet: boolean("has_power_outlet").notNull(),
-  noiseLevel: varchar("noise_level", { length: 20 }), // "Quiet", "Moderate", "Loud"
+  noiseLevel: varchar("noise_level", { length: 20 }), 
   description: text("description"),
   upvotes: integer("upvotes").default(0).notNull(),
   downvotes: integer("downvotes").default(0).notNull(),
@@ -51,6 +51,9 @@ export const images = pgTable("images", {
   height: integer("height"),
   format: varchar("format", { length: 10 }),
   metadata: jsonb("metadata"),
+  moderationStatus: varchar("moderation_status", { length: 20 }).notNull().default('pending'), 
+  moderatedBy: integer("moderated_by").references(() => users.id),
+  moderatedAt: timestamp("moderated_at"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -58,27 +61,26 @@ export const wifiSpeeds = pgTable("wifi_speeds", {
   id: serial("id").primaryKey(),
   establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  downloadSpeed: decimal("download_speed", { precision: 10, scale: 2 }).notNull(), // in Mbps
-  uploadSpeed: decimal("upload_speed", { precision: 10, scale: 2 }).notNull(), // in Mbps
-  latency: integer("latency"), // in ms
+  downloadSpeed: decimal("download_speed", { precision: 10, scale: 2 }).notNull(), 
+  uploadSpeed: decimal("upload_speed", { precision: 10, scale: 2 }).notNull(), 
+  latency: integer("latency"), 
   timestamp: timestamp("timestamp").defaultNow().notNull()
 });
 
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: text("name").unique().notNull(),
-  category: varchar("category", { length: 50 }).notNull(), // e.g., "amenity", "atmosphere"
+  category: varchar("category", { length: 50 }).notNull(), 
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const establishmentTags = pgTable("establishment_tags", {
   establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(), // who added this tag
+  userId: integer("user_id").references(() => users.id).notNull(), 
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-// Relations
 export const userRelations = relations(users, ({ many }) => ({
   seats: many(seats),
   wifiSpeeds: many(wifiSpeeds),
@@ -107,10 +109,13 @@ export const imageRelations = relations(images, ({ one }) => ({
   seat: one(seats, {
     fields: [images.seatId],
     references: [seats.id],
+  }),
+  moderator: one(users, {
+    fields: [images.moderatedBy],
+    references: [users.id],
   })
 }));
 
-// Schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export type InsertUser = typeof users.$inferInsert;

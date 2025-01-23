@@ -104,13 +104,14 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
         throw new Error(await response.text());
       }
 
-      return response.json();
+      const result = await response.json();
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/establishments/${establishmentId}/seats`] });
       toast({
         title: 'Success',
-        description: 'Your review has been added successfully',
+        description: data.message || 'Your review has been added successfully',
       });
       setOpen(false);
       form.reset();
@@ -177,9 +178,9 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
                 <FormItem>
                   <FormLabel>Capacity</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      min="1" 
+                    <Input
+                      type="number"
+                      min="1"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                     />
@@ -312,8 +313,8 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
               </p>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={addReviewMutation.isPending}
             >

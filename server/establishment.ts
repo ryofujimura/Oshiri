@@ -1,7 +1,7 @@
 import { type Express, type Request, type Response } from "express";
 import { establishments, seats, users, images, type InsertEstablishment } from "@db/schema";
 import { db } from "@db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { searchEstablishments, getEstablishmentDetails } from "./utils/yelp";
 import type { SearchResponse, Business } from "./types/yelp";
 import { insertSeatSchema, insertImageSchema } from "@db/schema";
@@ -271,7 +271,7 @@ export function setupEstablishmentRoutes(app: Express) {
           .values(result.data)
           .returning();
 
-        // Handle image uploads if any
+        // Handle image uploads with pending moderation status
         const uploadedImages = [];
         if (req.files && Array.isArray(req.files)) {
           for (const file of req.files) {
@@ -284,18 +284,18 @@ export function setupEstablishmentRoutes(app: Express) {
                   publicId: uploadResult.public_id,
                   width: uploadResult.width,
                   height: uploadResult.height,
-                  format: uploadResult.format
+                  format: uploadResult.format,
+                  moderationStatus: 'pending'
                 })
                 .returning();
               uploadedImages.push(image);
             } catch (uploadError) {
               console.error('Error uploading image:', uploadError);
-              // Continue with other images if one fails
             }
           }
         }
 
-        // Return the seat with its images
+        // Return the seat with its pending images
         const seatWithImages = {
           ...newSeat,
           images: uploadedImages,
@@ -305,7 +305,12 @@ export function setupEstablishmentRoutes(app: Express) {
           }
         };
 
-        res.json(seatWithImages);
+        res.json({
+          ...seatWithImages,
+          message: uploadedImages.length > 0 
+            ? "Your review has been submitted. The uploaded images will be visible after admin approval."
+            : "Your review has been submitted successfully."
+        });
       } catch (error: any) {
         console.error('Error adding seat review:', error);
         res.status(500).json({ message: error.message });
@@ -377,6 +382,77 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(recentSeats);
     } catch (error: any) {
       console.error('Error fetching recent reviews:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Add new route for image moderation
+  app.post("/api/images/:imageId/moderate", async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Must be logged in to moderate images" });
+      }
+
+      // Check if user is admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can moderate images" });
+      }
+
+      const { imageId } = req.params;
+      const { status } = req.body;
+
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: "Invalid moderation status" });
+      }
+
+      const [updatedImage] = await db
+        .update(images)
+        .set({
+          moderationStatus: status,
+          moderatedBy: req.user.id,
+          moderatedAt: new Date(),
+        })
+        .where(eq(images.id, parseInt(imageId)))
+        .returning();
+
+      if (!updatedImage) {
+        return res.status(404).json({ message: "Image not found" });
+      }
+
+      res.json(updatedImage);
+    } catch (error: any) {
+      console.error('Error moderating image:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Add route to get pending images for moderation
+  app.get("/api/images/pending", async (req: Request, res: Response) => {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can view pending images" });
+      }
+
+      const pendingImages = await db.query.images.findMany({
+        where: eq(images.moderationStatus, 'pending'),
+        with: {
+          seat: {
+            with: {
+              establishment: true,
+              user: {
+                columns: {
+                  username: true,
+                }
+              }
+            }
+          }
+        },
+        orderBy: (images, { asc }) => [asc(images.createdAt)]
+      });
+
+      res.json(pendingImages);
+    } catch (error: any) {
+      console.error('Error fetching pending images:', error);
       res.status(500).json({ message: error.message });
     }
   });
