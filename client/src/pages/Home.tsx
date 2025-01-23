@@ -52,11 +52,11 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Find Your Perfect Seat 🪑
+                Find Your Perfect Seat
               </h2>
               <p className="text-xl text-muted-foreground mb-12">
                 Discover and rate the most comfortable seats in cafes and restaurants.
-                Because great experiences start with where you sit! 🌟
+                Because great experiences start with where you sit!
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
@@ -110,7 +110,7 @@ export default function Home() {
         {recentReviews && recentReviews.length > 0 && (
           <section className="py-24 bg-background">
             <div className="container mx-auto px-4">
-              <h3 className="text-3xl font-bold text-center mb-12">Recent Reviews 📝</h3>
+              <h3 className="text-3xl font-bold text-center mb-12">Recent Reviews</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {recentReviews.map((review: Review) => (
                   <Card key={review.id} className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -144,7 +144,7 @@ export default function Home() {
         {/* Features Section */}
         <section className="py-24 bg-primary/5">
           <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-bold text-center mb-12">Why Choose Oshiri? 🤔</h3>
+            <h3 className="text-3xl font-bold text-center mb-12">Why Choose Oshiri?</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="relative overflow-hidden group">
@@ -153,7 +153,7 @@ export default function Home() {
                   <h4 className="text-xl font-semibold mb-2">Detailed Reviews</h4>
                   <p className="text-muted-foreground">
                     Get comprehensive insights about seating comfort, power outlets,
-                    and noise levels. Make informed decisions! 📝
+                    and noise levels. Make informed decisions!
                   </p>
                 </CardContent>
               </Card>
@@ -164,7 +164,7 @@ export default function Home() {
                   <h4 className="text-xl font-semibold mb-2">Location-Based</h4>
                   <p className="text-muted-foreground">
                     Find the perfect spot near you with our location-based search.
-                    Discover hidden gems in your area! 🗺️
+                    Discover hidden gems in your area!
                   </p>
                 </CardContent>
               </Card>
@@ -175,7 +175,7 @@ export default function Home() {
                   <h4 className="text-xl font-semibold mb-2">Community Driven</h4>
                   <p className="text-muted-foreground">
                     Join our community of reviewers. Share experiences and help
-                    others find their ideal seating! 🤝
+                    others find their ideal seating!
                   </p>
                 </CardContent>
               </Card>
@@ -186,7 +186,7 @@ export default function Home() {
         {/* How It Works Section */}
         <section className="py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-bold text-center mb-12">How It Works 🎯</h3>
+            <h3 className="text-3xl font-bold text-center mb-12">How It Works</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="text-center">
@@ -235,7 +235,7 @@ export default function Home() {
         {/* Call to Action */}
         <section className="py-24 bg-primary/5">
           <div className="container mx-auto px-4 text-center">
-            <h3 className="text-3xl font-bold mb-6">Ready to Find Your Perfect Seat? 🚀</h3>
+            <h3 className="text-3xl font-bold mb-6">Ready to Find Your Perfect Seat?</h3>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join our growing community and start discovering comfortable spaces
               that match your needs. Share your experiences and help others!
