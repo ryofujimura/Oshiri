@@ -4,6 +4,7 @@ import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { searchEstablishments, getEstablishmentDetails } from "./utils/yelp";
 import type { SearchResponse, Business } from "./types/yelp";
+import { insertSeatSchema } from "@db/schema";
 
 export function setupEstablishmentRoutes(app: Express) {
   // Search establishments (uses Yelp API)
@@ -130,6 +131,68 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(establishmentSeats);
     } catch (error: any) {
       console.error('Error getting establishment seats:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Add a new seat review
+  app.post("/api/establishments/:yelpId/seats", async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Must be logged in to add reviews" });
+      }
+
+      const { yelpId } = req.params;
+
+      // First get or create the establishment
+      let [establishment] = await db
+        .select()
+        .from(establishments)
+        .where(eq(establishments.yelpId, yelpId))
+        .limit(1);
+
+      if (!establishment) {
+        // Get establishment data from Yelp
+        const yelpData = await getEstablishmentDetails(yelpId);
+
+        [establishment] = await db
+          .insert(establishments)
+          .values({
+            yelpId: yelpData.id,
+            name: yelpData.name,
+            address: yelpData.location.address1 || '',
+            city: yelpData.location.city,
+            state: yelpData.location.state,
+            zipCode: yelpData.location.zip_code,
+            latitude: yelpData.coordinates.latitude,
+            longitude: yelpData.coordinates.longitude,
+            yelpRating: parseFloat(yelpData.rating),
+            phone: yelpData.phone
+          } as InsertEstablishment)
+          .returning();
+      }
+
+      // Validate and insert the seat review
+      const result = insertSeatSchema.safeParse({
+        ...req.body,
+        userId: req.user.id,
+        establishmentId: establishment.id
+      });
+
+      if (!result.success) {
+        return res.status(400).json({
+          message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ")
+        });
+      }
+
+      const [newSeat] = await db
+        .insert(seats)
+        .values(result.data)
+        .returning();
+
+      res.json(newSeat);
+    } catch (error: any) {
+      console.error('Error adding seat review:', error);
       res.status(500).json({ message: error.message });
     }
   });

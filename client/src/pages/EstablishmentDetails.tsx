@@ -6,6 +6,7 @@ import { Loader2, Star, MapPin, Phone } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
+import { SeatReviewDialog } from '@/components/seat/SeatReviewDialog';
 
 interface Seat {
   id: number;
@@ -104,9 +105,7 @@ export default function EstablishmentDetails() {
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-semibold">Seats & Reviews</h2>
           {user ? (
-            <Button>
-              Add Seat Review
-            </Button>
+            <SeatReviewDialog establishmentId={yelpId} />
           ) : (
             <Card className="p-4 bg-primary/5 border-primary/10">
               <p className="text-sm text-muted-foreground">

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
+import NearMe from "@/pages/NearMe";
 import EstablishmentDetails from "@/pages/EstablishmentDetails";
 
 function Router() {
@@ -12,6 +13,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/search" component={Search} />
+      <Route path="/near-me" component={NearMe} />
       <Route path="/establishments/:yelpId" component={EstablishmentDetails} />
       <Route component={NotFound} />
     </Switch>
