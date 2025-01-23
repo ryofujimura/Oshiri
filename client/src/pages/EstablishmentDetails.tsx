@@ -124,17 +124,18 @@ export default function EstablishmentDetails() {
     voteMutation.mutate({ seatId, voteType });
   };
 
-  // Sort seats by relevance (upvotes ratio)
-  const sortedSeats = [...seats].sort((a, b) => {
-    const getRelevanceScore = (seat: Seat) => {
-      const totalVotes = seat.upvotes + seat.downvotes;
-      if (totalVotes === 0) return 0;
-      return (seat.upvotes / totalVotes) * Math.log10(totalVotes + 1);
-    };
-    return getRelevanceScore(b) - getRelevanceScore(a);
-  });
+  // Sort seats by relevance (upvotes ratio) and filter hidden reviews
+  const sortedSeats = [...seats]
+    .filter((seat: Seat) => seat.isVisible) // Filter out hidden reviews
+    .sort((a, b) => {
+      const getRelevanceScore = (seat: Seat) => {
+        const totalVotes = seat.upvotes + seat.downvotes;
+        if (totalVotes === 0) return 0;
+        return (seat.upvotes / totalVotes) * Math.log10(totalVotes + 1);
+      };
+      return getRelevanceScore(b) - getRelevanceScore(a);
+    });
 
-  // Render the reviews section with visibility controls
   const renderReviews = () => {
     if (isLoadingSeats) {
       return (
