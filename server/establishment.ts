@@ -31,7 +31,43 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(searchResults);
     } catch (error: any) {
       console.error('Error searching establishments:', error);
-      res.status(500).json({ message: error.message });
+      const errorMessage = error.response?.body ? JSON.parse(error.response.body).error?.description : error.message;
+      res.status(error.statusCode || 500).json({ message: errorMessage || 'Error searching establishments. Please try again.' });
+    }
+  });
+
+  // Get nearby establishments
+  app.get("/api/establishments/nearby", async (req: Request, res: Response) => {
+    try {
+      const { latitude, longitude, radius = "1000", term } = req.query;
+
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude are required" });
+      }
+
+      const lat = parseFloat(latitude as string);
+      const lng = parseFloat(longitude as string);
+
+      // Validate coordinates
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return res.status(400).json({ message: "Invalid coordinates provided" });
+      }
+
+      const searchResults = await searchEstablishments({
+        latitude: lat,
+        longitude: lng,
+        radius: parseInt(radius as string),
+        categories: 'restaurants,cafes',
+        sort_by: 'distance',
+        term: term as string | undefined,
+        limit: 20 // Limit results to prevent overwhelming response
+      });
+
+      res.json(searchResults);
+    } catch (error: any) {
+      console.error('Error getting nearby establishments:', error);
+      const errorMessage = error.response?.body ? JSON.parse(error.response.body).error?.description : error.message;
+      res.status(error.statusCode || 500).json({ message: errorMessage || 'Error loading establishments. Please try again.' });
     }
   });
 
@@ -68,9 +104,9 @@ export function setupEstablishmentRoutes(app: Express) {
             city: yelpData.location.city,
             state: yelpData.location.state,
             zipCode: yelpData.location.zip_code,
-            latitude: yelpData.coordinates.latitude,
-            longitude: yelpData.coordinates.longitude,
-            yelpRating: parseFloat(yelpData.rating),
+            latitude: yelpData.coordinates.latitude.toString(),
+            longitude: yelpData.coordinates.longitude.toString(),
+            yelpRating: yelpData.rating.toString(),
             phone: yelpData.phone
           } as InsertEstablishment)
           .returning();
@@ -82,32 +118,8 @@ export function setupEstablishmentRoutes(app: Express) {
       }
     } catch (error: any) {
       console.error('Error getting establishment details:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Get nearby establishments
-  app.get("/api/establishments/nearby", async (req: Request, res: Response) => {
-    try {
-      const { latitude, longitude, radius, term } = req.query;
-
-      if (!latitude || !longitude) {
-        return res.status(400).json({ message: "Latitude and longitude are required" });
-      }
-
-      const searchResults = await searchEstablishments({
-        latitude: parseFloat(latitude as string),
-        longitude: parseFloat(longitude as string),
-        radius: radius ? parseInt(radius as string) : 1000,
-        categories: 'restaurants,cafes',
-        sort_by: 'distance',
-        term: term as string | undefined
-      });
-
-      res.json(searchResults);
-    } catch (error: any) {
-      console.error('Error getting nearby establishments:', error);
-      res.status(500).json({ message: error.message });
+      const errorMessage = error.response?.body ? JSON.parse(error.response.body).error?.description : error.message;
+      res.status(error.statusCode || 500).json({ message: errorMessage || 'Error loading establishment details. Please try again.' });
     }
   });
 
@@ -180,9 +192,9 @@ export function setupEstablishmentRoutes(app: Express) {
               city: yelpData.location.city,
               state: yelpData.location.state,
               zipCode: yelpData.location.zip_code,
-              latitude: yelpData.coordinates.latitude,
-              longitude: yelpData.coordinates.longitude,
-              yelpRating: parseFloat(yelpData.rating),
+              latitude: yelpData.coordinates.latitude.toString(),
+              longitude: yelpData.coordinates.longitude.toString(),
+              yelpRating: yelpData.rating.toString(),
               phone: yelpData.phone
             } as InsertEstablishment)
             .returning();
