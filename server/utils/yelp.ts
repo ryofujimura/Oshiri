@@ -29,7 +29,7 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
       throw new Error('Either location or coordinates (latitude/longitude) must be provided');
     }
 
-    // Set default parameters
+    // Set default parameters and include photos
     const searchParams = {
       term: params.term || '',
       categories: 'restaurants,cafes',
@@ -39,7 +39,32 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
 
     // @ts-ignore - yelp-fusion doesn't have type definitions
     const response = await client.search(searchParams);
-    return response.jsonBody as SearchResponse;
+    const businesses = response.jsonBody.businesses;
+
+    // Fetch additional details including photos for each business
+    const businessesWithPhotos = await Promise.all(
+      businesses.map(async (business: Business) => {
+        try {
+          // @ts-ignore - yelp-fusion doesn't have type definitions
+          const detailResponse = await client.business(business.id);
+          return {
+            ...business,
+            photos: detailResponse.jsonBody.photos || []
+          };
+        } catch (error) {
+          console.error(`Error fetching photos for business ${business.id}:`, error);
+          return {
+            ...business,
+            photos: []
+          };
+        }
+      })
+    );
+
+    return {
+      ...response.jsonBody,
+      businesses: businessesWithPhotos
+    } as SearchResponse;
   } catch (error: any) {
     console.error('Error searching establishments:', error);
     throw new Error(error.response?.body?.error?.description || error.message);
