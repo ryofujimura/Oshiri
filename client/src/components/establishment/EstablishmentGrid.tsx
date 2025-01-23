@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Added import
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'wouter';
 import { YelpImageCarousel } from './YelpImageCarousel';
 import { useToast } from '@/hooks/use-toast';
+import { AdSense } from '../ads/AdSense';
 
 interface Establishment {
   id: string;
@@ -332,49 +333,69 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {establishments.map((establishment: Establishment) => (
-        <Link
-          key={establishment.id}
-          href={`/establishments/${establishment.id}`}
-          className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
-        >
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-0">
-              <div className="grid grid-cols-5 h-full">
-                <div className="col-span-2 relative h-full min-h-[200px]">
-                  {establishment.photos && establishment.photos.length > 0 ? (
-                    <img
-                      src={establishment.photos[0]}
-                      alt={`${establishment.name}`}
-                      className="absolute inset-0 w-full h-full object-cover rounded-l-lg"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                      <img
-                        src="/placeholder-restaurant.png"
-                        alt="No image available"
-                        className="w-12 h-12 opacity-50"
-                      />
-                    </div>
-                  )}
-                </div>
+      {establishments.map((establishment: Establishment, index: number) => {
+        const items = [];
 
-                <div className="col-span-3 p-4 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {establishment.location.address1}, {establishment.location.city}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">⭐ {establishment.rating}</span>
+        // Add the establishment card
+        items.push(
+          <Link
+            key={establishment.id}
+            href={`/establishments/${establishment.id}`}
+            className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+          >
+            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-0">
+                <div className="grid grid-cols-5 h-full">
+                  <div className="col-span-2 relative h-full min-h-[200px]">
+                    {establishment.photos && establishment.photos.length > 0 ? (
+                      <img
+                        src={establishment.photos[0]}
+                        alt={`${establishment.name}`}
+                        className="absolute inset-0 w-full h-full object-cover rounded-l-lg"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                        <img
+                          src="/placeholder-restaurant.png"
+                          alt="No image available"
+                          className="w-12 h-12 opacity-50"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="col-span-3 p-4 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {establishment.location.address1}, {establishment.location.city}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">⭐ {establishment.rating}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
+              </CardContent>
+            </Card>
+          </Link>
+        );
+
+        // Add an AdSense ad after every 4 establishments (but not after the last one)
+        if ((index + 1) % 4 === 0 && index !== establishments.length - 1) {
+          items.push(
+            <div key={`ad-${index}`} className="col-span-full">
+              <AdSense
+                slot="1234567890" // Replace with your actual ad slot ID
+                format="auto"
+                className="w-full min-h-[90px] bg-gray-50"
+              />
+            </div>
+          );
+        }
+
+        return items;
+      }).flat()}
     </div>
   );
 }
