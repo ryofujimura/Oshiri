@@ -62,8 +62,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+    <div className="min-h-screen bg-white">
+      <header className="border-b sticky top-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
@@ -173,13 +173,13 @@ export default function Home() {
           </div>
 
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl" />
-            <div className="absolute -bottom-1/2 -left-1/4 w-[800px] h-[800px] bg-gradient-to-tl from-primary/5 to-transparent rounded-full blur-3xl" />
+            <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-gradient-to-br from-primary/[0.03] to-transparent rounded-full blur-3xl" />
+            <div className="absolute -bottom-1/2 -left-1/4 w-[800px] h-[800px] bg-gradient-to-tl from-primary/[0.03] to-transparent rounded-full blur-3xl" />
           </div>
         </section>
 
         {recentReviews && recentReviews.length > 0 && (
-          <section className="py-24 bg-background/50 relative overflow-hidden">
+          <section className="py-24 bg-white relative overflow-hidden">
             <div className="container mx-auto px-4">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -255,7 +255,7 @@ export default function Home() {
           </section>
         )}
 
-        <section className="py-24 bg-primary/5 relative overflow-hidden">
+        <section className="py-24 bg-gray-50/50 relative overflow-hidden">
           <div className="container mx-auto px-4">
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
@@ -343,12 +343,12 @@ export default function Home() {
           </div>
 
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-0 w-64 h-64 bg-gradient-to-br from-primary/[0.02] to-transparent rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-primary/[0.02] to-transparent rounded-full blur-3xl" />
           </div>
         </section>
 
-        <section className="py-24 bg-background">
+        <section className="py-24 bg-white">
           <div className="container mx-auto px-4 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
