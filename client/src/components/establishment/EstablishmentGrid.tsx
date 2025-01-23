@@ -241,7 +241,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         <div className="flex items-center gap-2">
           <Loader2 className="w-8 h-8 animate-spin" />
           <span>
-            {retryCount > 0 
+            {retryCount > 0
               ? `Retrying location detection (Attempt ${retryCount}/${MAX_RETRIES})...`
               : "Detecting your location..."}
           </span>
@@ -254,7 +254,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   if (locationError && !searchParams?.location) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-8">
-        <Alert 
+        <Alert
           variant={locationError === 'timeout' ? 'default' : 'destructive'}
           className="max-w-md"
         >
@@ -262,24 +262,45 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
 
-        {locationError !== 'permission' && (
-          <Button
-            onClick={() => {
-              setRetryCount(0);
-              requestLocation();
-            }}
-            className="flex items-center gap-2"
-            variant="outline"
-          >
-            <MapPin className="w-4 h-4" />
-            Try Again
-          </Button>
-        )}
+        <Button
+          onClick={() => {
+            setRetryCount(0);
+            requestLocation();
+          }}
+          className="flex items-center gap-2"
+          variant="outline"
+        >
+          <MapPin className="w-4 h-4" />
+          Use My Location
+        </Button>
 
         <p className="text-sm text-muted-foreground text-center max-w-md">
           {locationError === 'permission'
             ? "You can still search for restaurants by entering a location in the search box above."
             : "While we try to get your location, you can also search for restaurants by entering a location manually."}
+        </p>
+      </div>
+    );
+  }
+
+  // Show location button if no coordinates and no search
+  if (!coordinates && !searchParams?.term && !searchParams?.location && !isLocating && permissionState !== 'granted') {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-8">
+        <Button
+          onClick={() => {
+            setRetryCount(0);
+            requestLocation();
+          }}
+          className="flex items-center gap-2"
+          variant="outline"
+          size="lg"
+        >
+          <MapPin className="w-5 h-5" />
+          Use My Location
+        </Button>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          Click to show restaurants near you, or use the search box above to find specific locations
         </p>
       </div>
     );
