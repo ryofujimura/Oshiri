@@ -8,6 +8,7 @@ import Search from "@/pages/Search";
 import NearMe from "@/pages/NearMe";
 import EstablishmentDetails from "@/pages/EstablishmentDetails";
 import Profile from "@/pages/profile";
+import TopRated from "@/pages/TopRated";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/near-me" component={NearMe} />
       <Route path="/establishments/:yelpId" component={EstablishmentDetails} />
       <Route path="/profile" component={Profile} />
+      <Route path="/top-rated" component={TopRated} />
       <Route component={NotFound} />
     </Switch>
   );
