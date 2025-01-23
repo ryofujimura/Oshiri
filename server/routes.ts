@@ -5,7 +5,7 @@ import { setupEstablishmentRoutes } from "./establishment";
 import { setupUserRoutes } from "./user";
 import { db } from "@db";
 import { websiteFeedback } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
@@ -77,7 +77,7 @@ export function registerRoutes(app: Express): Server {
       const [feedback] = await db
         .update(websiteFeedback)
         .set({
-          [type === 'up' ? 'upvotes' : 'downvotes']: db.raw('?? + 1', [type === 'up' ? 'upvotes' : 'downvotes']),
+          [type === 'up' ? 'upvotes' : 'downvotes']: sql`${websiteFeedback[type === 'up' ? 'upvotes' : 'downvotes']} + 1`,
         })
         .where(eq(websiteFeedback.id, feedbackId))
         .returning();
@@ -123,7 +123,9 @@ export function registerRoutes(app: Express): Server {
 
       const [feedback] = await db
         .update(websiteFeedback)
-        .set({ status })
+        .set({
+          status: status as 'pending' | 'in-progress' | 'completed' | 'declined'
+        })
         .where(eq(websiteFeedback.id, feedbackId))
         .returning();
 
