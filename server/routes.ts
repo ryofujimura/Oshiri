@@ -74,16 +74,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send('Invalid vote type');
       }
 
-      const columnName = type === 'up' ? 'upvotes' : 'downvotes';
-      const [feedback] = await db
+      // Use SQL expressions to increment the vote count
+      const updates = type === 'up' 
+        ? { upvotes: sql`${websiteFeedback.upvotes} + 1` }
+        : { downvotes: sql`${websiteFeedback.downvotes} + 1` };
+
+      const [updatedFeedback] = await db
         .update(websiteFeedback)
-        .set({
-          [columnName]: sql`${websiteFeedback[columnName]} + 1`
-        })
+        .set(updates)
         .where(eq(websiteFeedback.id, feedbackId))
         .returning();
 
-      res.json(feedback);
+      if (!updatedFeedback) {
+        return res.status(404).send('Feedback not found');
+      }
+
+      res.json(updatedFeedback);
     } catch (error) {
       next(error);
     }

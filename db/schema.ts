@@ -49,6 +49,9 @@ export const websiteFeedback = pgTable("website_feedback", {
   userId: integer("user_id").references(() => users.id).notNull(),
   content: text("content").notNull(),
   category: varchar("category", { length: 50 }).default('general'),
+  upvotes: integer("upvotes").default(0).notNull(),
+  downvotes: integer("downvotes").default(0).notNull(),
+  status: varchar("status", { length: 20 }).default('pending').notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
