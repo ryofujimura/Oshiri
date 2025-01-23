@@ -44,6 +44,14 @@ export const seats = pgTable("seats", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const websiteFeedback = pgTable("website_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 50 }).default('general'),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 export const seatEditRequests = pgTable("seat_edit_requests", {
   id: serial("id").primaryKey(),
   seatId: integer("seat_id").references(() => seats.id).notNull(),
@@ -102,11 +110,11 @@ export const establishmentTags = pgTable("establishment_tags", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-// Relations
 export const userRelations = relations(users, ({ many }) => ({
   seats: many(seats),
   editRequests: many(seatEditRequests),
-  moderatedImages: many(images, { relationName: 'moderator' })
+  moderatedImages: many(images, { relationName: 'moderator' }),
+  websiteFeedback: many(websiteFeedback)
 }));
 
 export const establishmentRelations = relations(establishments, ({ many }) => ({
@@ -152,7 +160,13 @@ export const seatEditRequestRelations = relations(seatEditRequests, ({ one }) =>
   })
 }));
 
-// Schemas
+export const websiteFeedbackRelations = relations(websiteFeedback, ({ one }) => ({
+  user: one(users, {
+    fields: [websiteFeedback.userId],
+    references: [users.id],
+  })
+}));
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export type InsertUser = typeof users.$inferInsert;
@@ -177,3 +191,8 @@ export const insertSeatEditRequestSchema = createInsertSchema(seatEditRequests);
 export const selectSeatEditRequestSchema = createSelectSchema(seatEditRequests);
 export type InsertSeatEditRequest = typeof seatEditRequests.$inferInsert;
 export type SelectSeatEditRequest = typeof seatEditRequests.$inferSelect;
+
+export const insertWebsiteFeedbackSchema = createInsertSchema(websiteFeedback);
+export const selectWebsiteFeedbackSchema = createSelectSchema(websiteFeedback);
+export type InsertWebsiteFeedback = typeof websiteFeedback.$inferInsert;
+export type SelectWebsiteFeedback = typeof websiteFeedback.$inferSelect;
