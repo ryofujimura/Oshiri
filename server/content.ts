@@ -3,29 +3,22 @@ import { contents, images, type InsertContent, type InsertImage } from "@db/sche
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { uploadImage, deleteImage } from "./utils/cloudinary";
 
-// Configure multer for handling file uploads
+// Configure multer for handling file uploads (temporary storage)
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
-    const uploadDir = 'uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
+    cb(null, '/tmp');  // Store temporarily in /tmp
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix);
   }
 });
 
 const upload = multer({ storage: storage });
 
 export function setupContentRoutes(app: Express) {
-  // Serve uploaded files statically
-  app.use('/uploads', express.static('uploads'));
-
   // Get all contents with their images
   app.get("/api/contents", async (_req: Request, res: Response) => {
     try {
@@ -75,14 +68,22 @@ export function setupContentRoutes(app: Express) {
         } as InsertContent)
         .returning();
 
-      // Then create image records for each uploaded file
+      // Upload images to Cloudinary and create image records
       if (files && files.length > 0) {
-        const imageValues = files.map(file => ({
-          imageUrl: `/uploads/${file.filename}`,
-          contentId: newContent.id,
-        }));
+        const uploadPromises = files.map(async (file) => {
+          const cloudinaryResult = await uploadImage(file);
+          return {
+            imageUrl: cloudinaryResult.secure_url,
+            publicId: cloudinaryResult.public_id,
+            width: cloudinaryResult.width,
+            height: cloudinaryResult.height,
+            format: cloudinaryResult.format,
+            contentId: newContent.id,
+          };
+        });
 
-        await db.insert(images).values(imageValues as InsertImage[]);
+        const imageData = await Promise.all(uploadPromises);
+        await db.insert(images).values(imageData as InsertImage[]);
       }
 
       // Fetch the content with its images and categories
@@ -134,12 +135,20 @@ export function setupContentRoutes(app: Express) {
 
       // If new images are uploaded, add them
       if (files && files.length > 0) {
-        const imageValues = files.map(file => ({
-          imageUrl: `/uploads/${file.filename}`,
-          contentId,
-        }));
+        const uploadPromises = files.map(async (file) => {
+          const cloudinaryResult = await uploadImage(file);
+          return {
+            imageUrl: cloudinaryResult.secure_url,
+            publicId: cloudinaryResult.public_id,
+            width: cloudinaryResult.width,
+            height: cloudinaryResult.height,
+            format: cloudinaryResult.format,
+            contentId,
+          };
+        });
 
-        await db.insert(images).values(imageValues as InsertImage[]);
+        const imageData = await Promise.all(uploadPromises);
+        await db.insert(images).values(imageData as InsertImage[]);
       }
 
       // Fetch updated content with relations
@@ -169,38 +178,6 @@ export function setupContentRoutes(app: Express) {
     }
   });
 
-  // Vote on content
-  app.post("/api/contents/:id/vote", async (req: Request, res: Response) => {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const contentId = parseInt(req.params.id);
-    const { type } = req.body;
-
-    try {
-      const [content] = await db.select().from(contents).where(eq(contents.id, contentId));
-
-      if (!content) {
-        return res.status(404).json({ message: "Content not found" });
-      }
-
-      const [updatedContent] = await db
-        .update(contents)
-        .set({
-          upvotes: type === 'up' ? content.upvotes + 1 : content.upvotes,
-          downvotes: type === 'down' ? content.downvotes + 1 : content.downvotes,
-        })
-        .where(eq(contents.id, contentId))
-        .returning();
-
-      res.json(updatedContent);
-    } catch (error) {
-      console.error('Error updating vote:', error);
-      res.status(500).json({ message: "Failed to update vote" });
-    }
-  });
-
   // Delete content (admin only)
   app.delete("/api/contents/:id", async (req: Request, res: Response) => {
     if (!req.user?.id || req.user.role !== 'admin') {
@@ -210,14 +187,13 @@ export function setupContentRoutes(app: Express) {
     const contentId = parseInt(req.params.id);
 
     try {
-      // Delete associated images first (files and records)
+      // Delete associated images from Cloudinary first
       const contentImages = await db.select().from(images).where(eq(images.contentId, contentId));
 
-      // Delete image files
+      // Delete images from Cloudinary
       for (const image of contentImages) {
-        const filePath = path.join(process.cwd(), image.imageUrl);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        if (image.publicId) {
+          await deleteImage(image.publicId);
         }
       }
 

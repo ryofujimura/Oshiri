@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -43,6 +43,11 @@ export const contents = pgTable("contents", {
 export const images = pgTable("images", {
   id: serial("id").primaryKey(),
   imageUrl: text("image_url").notNull(),
+  publicId: text("public_id").notNull(),  // Cloudinary public ID
+  width: integer("width"),
+  height: integer("height"),
+  format: varchar("format", { length: 10 }),
+  metadata: jsonb("metadata"),  // For storing additional Cloudinary metadata
   contentId: integer("content_id").references(() => contents.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
