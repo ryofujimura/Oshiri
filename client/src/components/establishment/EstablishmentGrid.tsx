@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 
 interface Establishment {
   id: string;
@@ -129,9 +130,11 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
               <div className="flex items-center gap-2">
                 <span className="text-sm">Rating: {establishment.rating}</span>
               </div>
-              <Button variant="outline" size="sm">
-                View Seats
-              </Button>
+              <Link href={`/establishments/${establishment.id}`}>
+                <Button variant="outline" size="sm">
+                  View Seats
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

@@ -48,17 +48,16 @@ export async function migrateData() {
 
       // Migrate images
       if (content.images && content.images.length > 0) {
-        const imageInserts = content.images.map(image => ({
+        const imageData = content.images.map(image => ({
           seatId: newSeat.id,
           imageUrl: image.imageUrl,
           publicId: image.publicId,
           width: image.width,
           height: image.height,
           format: image.format,
-          metadata: image.metadata,
         }));
 
-        await db.insert(images).values(imageInserts);
+        await db.insert(images).values(imageData);
       }
     }
 

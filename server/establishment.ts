@@ -1,5 +1,5 @@
 import { type Express, type Request, type Response } from "express";
-import { establishments, type InsertEstablishment } from "@db/schema";
+import { establishments, seats, type InsertEstablishment } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { searchEstablishments, getEstablishmentDetails } from "./utils/yelp";
@@ -100,4 +100,18 @@ export function setupEstablishmentRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Route for managing seats at a specific establishment
+  app.get("/api/establishments/:yelpId/seats", async (req: Request, res: Response) => {
+    try {
+      const { yelpId } = req.params;
+      const establishmentSeats = await db.select().from(seats).where(eq(seats.establishmentId, yelpId)); // Assuming seats table has establishmentId
+      res.json(establishmentSeats);
+    } catch (error: any) {
+      console.error('Error getting establishment seats:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+
 }
