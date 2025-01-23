@@ -22,9 +22,30 @@ interface SearchParams {
   term?: string;
 }
 
+// Helper function to add delay between API calls
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to fetch business details with retries
+async function fetchBusinessDetails(businessId: string, retryCount = 0): Promise<Business> {
+  try {
+    // Add delay to respect rate limiting
+    await delay(100); // 100ms delay between requests
+
+    // @ts-ignore - yelp-fusion doesn't have type definitions
+    const response = await client.business(businessId);
+    return response.jsonBody;
+  } catch (error: any) {
+    if (error.response?.statusCode === 429 && retryCount < 3) {
+      // If rate limited, wait longer and retry
+      await delay(1000 * (retryCount + 1)); // Exponential backoff
+      return fetchBusinessDetails(businessId, retryCount + 1);
+    }
+    throw error;
+  }
+}
+
 export async function searchEstablishments(params: SearchParams): Promise<SearchResponse> {
   try {
-    // Ensure either location or coordinates are provided
     if (!params.location && (!params.latitude || !params.longitude)) {
       throw new Error('Either location or coordinates (latitude/longitude) must be provided');
     }
@@ -41,25 +62,37 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
     const response = await client.search(searchParams);
     const businesses = response.jsonBody.businesses;
 
-    // Fetch additional details including photos for each business
-    const businessesWithPhotos = await Promise.all(
-      businesses.map(async (business: Business) => {
-        try {
-          // @ts-ignore - yelp-fusion doesn't have type definitions
-          const detailResponse = await client.business(business.id);
-          return {
-            ...business,
-            photos: detailResponse.jsonBody.photos || []
-          };
-        } catch (error) {
-          console.error(`Error fetching photos for business ${business.id}:`, error);
-          return {
-            ...business,
-            photos: []
-          };
-        }
-      })
-    );
+    // Process businesses in smaller batches to avoid rate limiting
+    const batchSize = 5;
+    const businessesWithPhotos = [];
+
+    for (let i = 0; i < businesses.length; i += batchSize) {
+      const batch = businesses.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (business: Business) => {
+          try {
+            const details = await fetchBusinessDetails(business.id);
+            return {
+              ...business,
+              photos: details.photos || []
+            };
+          } catch (error) {
+            console.error(`Error fetching photos for business ${business.id}:`, error);
+            // Return the business with existing photos if available, or empty array
+            return {
+              ...business,
+              photos: business.photos || []
+            };
+          }
+        })
+      );
+      businessesWithPhotos.push(...batchResults);
+
+      // Add delay between batches
+      if (i + batchSize < businesses.length) {
+        await delay(500); // 500ms delay between batches
+      }
+    }
 
     return {
       ...response.jsonBody,
@@ -73,15 +106,10 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
 
 export async function getEstablishmentDetails(yelpId: string): Promise<Business & { photos: string[] }> {
   try {
-    // @ts-ignore - yelp-fusion doesn't have type definitions
-    const response = await client.business(yelpId);
-    const business = response.jsonBody as Business;
-
-    // Add photos to the response if available
-    const photos = business.photos || [];
+    const business = await fetchBusinessDetails(yelpId);
     return {
       ...business,
-      photos: photos.slice(0, 5) // Limit to first 5 photos
+      photos: business.photos || []
     };
   } catch (error: any) {
     console.error('Error getting establishment details:', error);
