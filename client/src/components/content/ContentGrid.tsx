@@ -31,8 +31,9 @@ export function ContentGrid() {
       />
     );
 
-    // Add an ad after every 15th item (but not at the end if it's the last item)
-    if ((index + 1) % 15 === 0 && index !== contents.length - 1) {
+    // Add an ad after every 4 rows (12 items) in the 3-column grid
+    // Don't add after the last row
+    if ((index + 1) % 12 === 0 && index !== contents.length - 1) {
       acc.push(
         <div key={`ad-${index}`} className="col-span-full">
           <AdSense

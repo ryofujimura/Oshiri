@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Trash, Edit, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Trash, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -120,17 +120,13 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
         <h3 className="text-lg font-semibold">{content.title}</h3>
       </CardHeader>
       <CardContent>
-        {content.images && content.images.length > 0 ? (
-          <div className="relative">
-            {imageError[currentImageIndex] ? (
-              <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                <ImageOff className="w-8 h-8 text-gray-400" />
-              </div>
-            ) : (
+        {content.images && content.images.length > 0 && (
+          <div className="relative mb-4">
+            {!imageError[currentImageIndex] && (
               <img 
                 src={content.images[currentImageIndex].imageUrl} 
                 alt={`${content.title} - Image ${currentImageIndex + 1}`}
-                className="w-full h-48 object-cover mb-4 rounded-md"
+                className="w-full h-48 object-cover rounded-md"
                 onError={() => handleImageError(currentImageIndex)}
               />
             )}
@@ -152,7 +148,7 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
-                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-1">
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
                   {content.images.map((_, index) => (
                     <div
                       key={index}
@@ -164,10 +160,6 @@ export function ContentCard({ content, onEdit }: ContentCardProps) {
                 </div>
               </>
             )}
-          </div>
-        ) : (
-          <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-md mb-4">
-            <ImageOff className="w-8 h-8 text-gray-400" />
           </div>
         )}
         <p className="text-sm text-gray-600">{content.description}</p>
