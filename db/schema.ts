@@ -38,12 +38,12 @@ export const seats = pgTable("seats", {
   description: text("description"),
   upvotes: integer("upvotes").default(0).notNull(),
   downvotes: integer("downvotes").default(0).notNull(),
+  isVisible: boolean("is_visible").default(true).notNull(),
   status: varchar("status", { length: 20 }).notNull().default('active'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// New table for tracking seat review edit requests
 export const seatEditRequests = pgTable("seat_edit_requests", {
   id: serial("id").primaryKey(),
   seatId: integer("seat_id").references(() => seats.id).notNull(),
@@ -71,7 +71,8 @@ export const images = pgTable("images", {
   height: integer("height"),
   format: varchar("format", { length: 10 }),
   metadata: jsonb("metadata"),
-  moderationStatus: varchar("status", { length: 20 }).notNull().default('pending'), // Fix column name
+  isVisible: boolean("is_visible").default(true).notNull(),
+  moderationStatus: varchar("moderation_status", { length: 20 }).notNull().default('pending'),
   moderatedBy: integer("moderated_by").references(() => users.id),
   moderatedAt: timestamp("moderated_at"),
   createdAt: timestamp("created_at").defaultNow().notNull()
@@ -171,16 +172,6 @@ export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export type InsertImage = typeof images.$inferInsert;
 export type SelectImage = typeof images.$inferSelect;
-
-export const insertWifiSpeedSchema = createInsertSchema(wifiSpeeds);
-export const selectWifiSpeedSchema = createSelectSchema(wifiSpeeds);
-export type InsertWifiSpeed = typeof wifiSpeeds.$inferInsert;
-export type SelectWifiSpeed = typeof wifiSpeeds.$inferSelect;
-
-export const insertTagSchema = createInsertSchema(tags);
-export const selectTagSchema = createSelectSchema(tags);
-export type InsertTag = typeof tags.$inferInsert;
-export type SelectTag = typeof tags.$inferSelect;
 
 export const insertSeatEditRequestSchema = createInsertSchema(seatEditRequests);
 export const selectSeatEditRequestSchema = createSelectSchema(seatEditRequests);

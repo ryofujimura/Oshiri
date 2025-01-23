@@ -186,7 +186,7 @@ export function setupEstablishmentRoutes(app: Express) {
         return res.status(404).json({ message: "Establishment not found" });
       }
 
-      // Now get the seats with user and image data
+      // Now get all seats with user and image data
       const establishmentSeats = await db.query.seats.findMany({
         where: eq(seats.establishmentId, establishment.id),
         with: {
@@ -203,6 +203,41 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(establishmentSeats);
     } catch (error: any) {
       console.error('Error getting establishment seats:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Add visibility toggle endpoint for admins
+  app.post("/api/establishments/:yelpId/seats/:seatId/visibility", async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Must be logged in to manage reviews" });
+      }
+
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can manage review visibility" });
+      }
+
+      const { seatId } = req.params;
+      const { isVisible } = req.body;
+
+      if (typeof isVisible !== 'boolean') {
+        return res.status(400).json({ message: "Invalid visibility value" });
+      }
+
+      const [updatedSeat] = await db
+        .update(seats)
+        .set({ isVisible })
+        .where(eq(seats.id, parseInt(seatId)))
+        .returning();
+
+      if (!updatedSeat) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+
+      res.json(updatedSeat);
+    } catch (error: any) {
+      console.error('Error updating seat visibility:', error);
       res.status(500).json({ message: error.message });
     }
   });

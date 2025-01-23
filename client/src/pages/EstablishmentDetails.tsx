@@ -9,6 +9,9 @@ import { SeatReviewDialog } from '@/components/seat/SeatReviewDialog';
 import { SeatImageCarousel } from '@/components/seat/SeatImageCarousel';
 import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface Seat {
   id: number;
@@ -20,6 +23,7 @@ interface Seat {
   description?: string;
   upvotes: number;
   downvotes: number;
+  isVisible: boolean;
   createdAt: string;
   images: Array<{
     id: number;
@@ -75,6 +79,38 @@ export default function EstablishmentDetails() {
     },
   });
 
+  // Add visibility toggle mutation
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async ({ seatId, isVisible }: { seatId: number; isVisible: boolean }) => {
+      const response = await fetch(`/api/establishments/${yelpId}/seats/${seatId}/visibility`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVisible }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/establishments/${yelpId}/seats`] });
+      toast({
+        title: 'Success',
+        description: 'Review visibility updated successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleVote = (seatId: number, voteType: 'upvote' | 'downvote') => {
     if (!user) {
       toast({
@@ -97,6 +133,144 @@ export default function EstablishmentDetails() {
     };
     return getRelevanceScore(b) - getRelevanceScore(a);
   });
+
+  // Render the reviews section with visibility controls
+  const renderReviews = () => {
+    if (isLoadingSeats) {
+      return (
+        <div className="flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      );
+    }
+
+    if (!sortedSeats.length) {
+      return (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No seat reviews yet. {user ? "Be the first to add one! 🪑" : "Sign in to add the first review! 🪑"}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sortedSeats.map((seat: Seat) => (
+          <Card
+            key={seat.id}
+            className={cn(
+              'transition-opacity duration-200',
+              !seat.isVisible && 'opacity-60'
+            )}
+          >
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    🪑
+                    <h3 className="font-semibold capitalize">{seat.type}</h3>
+                    {!seat.isVisible && (
+                      <Badge variant="secondary">Hidden</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Added by {seat.user.username}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm">
+                    {new Date(seat.createdAt).toLocaleDateString()}
+                  </div>
+                  {user?.role === 'admin' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleVisibilityMutation.mutate({
+                        seatId: seat.id,
+                        isVisible: !seat.isVisible
+                      })}
+                      disabled={toggleVisibilityMutation.isPending}
+                    >
+                      {seat.isVisible ? 'Hide' : 'Show'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {seat.images && seat.images.length > 0 && (
+                <div className="mb-4">
+                  <SeatImageCarousel images={seat.images} />
+                </div>
+              )}
+              <div className="space-y-2">
+                {seat.capacity && (
+                  <div className="flex items-center gap-2">
+                    👥
+                    <span className="font-medium">Capacity:</span>
+                    <span className="text-muted-foreground">
+                      {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
+                    </span>
+                  </div>
+                )}
+                {seat.comfortRating && (
+                  <div className="flex items-center gap-2">
+                    ⭐
+                    <span className="font-medium">Comfort:</span>
+                    <span className="text-muted-foreground">{seat.comfortRating}</span>
+                  </div>
+                )}
+                {seat.hasPowerOutlet && (
+                  <div className="flex items-center gap-2">
+                    🔌
+                    <span className="font-medium">Power Outlet:</span>
+                    <span className="text-muted-foreground">
+                      {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
+                    </span>
+                  </div>
+                )}
+                {seat.noiseLevel && (
+                  <div className="flex items-center gap-2">
+                    🔊
+                    <span className="font-medium">Noise Level:</span>
+                    <span className="text-muted-foreground">{seat.noiseLevel}</span>
+                  </div>
+                )}
+                {seat.description && (
+                  <p className="text-sm mt-2">{seat.description}</p>
+                )}
+
+                {/* Voting Section */}
+                <div className="flex items-center gap-4 pt-4 border-t mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleVote(seat.id, 'upvote')}
+                    disabled={voteMutation.isPending}
+                  >
+                    👍
+                    <span>{seat.upvotes}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleVote(seat.id, 'downvote')}
+                    disabled={voteMutation.isPending}
+                  >
+                    👎
+                    <span>{seat.downvotes}</span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
 
   if (isLoadingEstablishment || isLoadingSeats) {
     return (
@@ -174,104 +348,7 @@ export default function EstablishmentDetails() {
           )}
         </div>
 
-        {sortedSeats.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              No seat reviews yet. {user ? "Be the first to add one! 🪑" : "Sign in to add the first review! 🪑"}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedSeats.map((seat: Seat) => (
-              <Card key={seat.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        🪑
-                        <h3 className="font-semibold capitalize">{seat.type}</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Added by {seat.user.username}
-                      </p>
-                    </div>
-                    <div className="text-sm">
-                      {new Date(seat.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {seat.images && seat.images.length > 0 && (
-                    <div className="mb-4">
-                      <SeatImageCarousel images={seat.images} />
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    {seat.capacity && (
-                      <div className="flex items-center gap-2">
-                        👥
-                        <span className="font-medium">Capacity:</span>
-                        <span className="text-muted-foreground">
-                          {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
-                        </span>
-                      </div>
-                    )}
-                    {seat.comfortRating && (
-                      <div className="flex items-center gap-2">
-                        ⭐
-                        <span className="font-medium">Comfort:</span>
-                        <span className="text-muted-foreground">{seat.comfortRating}</span>
-                      </div>
-                    )}
-                    {seat.hasPowerOutlet && (
-                      <div className="flex items-center gap-2">
-                        🔌
-                        <span className="font-medium">Power Outlet:</span>
-                        <span className="text-muted-foreground">
-                          {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
-                        </span>
-                      </div>
-                    )}
-                    {seat.noiseLevel && (
-                      <div className="flex items-center gap-2">
-                        🔊
-                        <span className="font-medium">Noise Level:</span>
-                        <span className="text-muted-foreground">{seat.noiseLevel}</span>
-                      </div>
-                    )}
-                    {seat.description && (
-                      <p className="text-sm mt-2">{seat.description}</p>
-                    )}
-
-                    {/* Voting Section */}
-                    <div className="flex items-center gap-4 pt-4 border-t mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                        onClick={() => handleVote(seat.id, 'upvote')}
-                        disabled={voteMutation.isPending}
-                      >
-                        👍
-                        <span>{seat.upvotes}</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                        onClick={() => handleVote(seat.id, 'downvote')}
-                        disabled={voteMutation.isPending}
-                      >
-                        👎
-                        <span>{seat.downvotes}</span>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {renderReviews()}
       </main>
     </div>
   );
