@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Menu, Search, MapPin, Star, User, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -11,21 +11,25 @@ const routes = [
     title: 'Search',
     href: '/search',
     icon: Search,
+    description: 'Find your perfect seating spot',
   },
   {
     title: 'Near Me',
     href: '/near-me',
     icon: MapPin,
+    description: 'Discover local restaurants',
   },
   {
     title: 'Top Rated',
     href: '/top-rated',
     icon: Star,
+    description: 'Best rated seating experiences',
   },
   {
     title: 'Profile',
     href: '/profile',
     icon: User,
+    description: 'View your reviews and settings',
   },
 ];
 
@@ -36,19 +40,25 @@ export function MainNav() {
   return (
     <>
       {/* Desktop Navigation */}
-      <nav className="hidden md:flex items-center space-x-4">
+      <nav className="hidden md:flex items-center space-x-6">
         {routes.map((route) => (
           <Link key={route.href} href={route.href}>
             <a
               className={cn(
-                'flex items-center text-sm font-medium transition-colors hover:text-primary',
+                'group flex items-center text-sm font-medium transition-colors hover:text-primary relative px-2 py-1.5',
                 location === route.href
                   ? 'text-primary'
                   : 'text-muted-foreground'
               )}
             >
-              <route.icon className="h-4 w-4 mr-2" />
+              <route.icon className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
               {route.title}
+              {location === route.href && (
+                <span className="absolute bottom-0 left-0 h-0.5 w-full bg-primary scale-x-100 transition-transform" />
+              )}
+              <span className="absolute left-1/2 -translate-x-1/2 -bottom-12 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-md pointer-events-none whitespace-nowrap">
+                {route.description}
+              </span>
             </a>
           </Link>
         ))}
@@ -57,27 +67,40 @@ export function MainNav() {
       {/* Mobile Navigation */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild className="md:hidden">
-          <Button variant="ghost" size="icon">
-            <Menu className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="relative">
+            <Menu className={cn(
+              "h-5 w-5 transition-transform duration-200",
+              open && "scale-0"
+            )} />
+            <X className={cn(
+              "h-5 w-5 absolute transition-transform duration-200",
+              open ? "scale-100" : "scale-0"
+            )} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0">
+        <SheetContent side="left" className="p-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <ScrollArea className="h-full py-6">
-            <div className="space-y-4">
+            <div className="space-y-1 px-2">
               {routes.map((route) => (
                 <Link key={route.href} href={route.href}>
-                  <a
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'flex items-center gap-2 px-6 py-2 text-sm font-medium transition-colors hover:text-primary hover:bg-primary/5',
-                      location === route.href
-                        ? 'text-primary bg-primary/5'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    <route.icon className="h-4 w-4" />
-                    {route.title}
-                  </a>
+                  <SheetClose asChild>
+                    <a
+                      className={cn(
+                        'flex flex-col gap-1 px-4 py-3 text-sm transition-colors rounded-md hover:bg-primary/5',
+                        location === route.href
+                          ? 'bg-primary/5 text-primary'
+                          : 'text-muted-foreground hover:text-primary'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <route.icon className="h-5 w-5" />
+                        <span className="font-medium">{route.title}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground pl-8">
+                        {route.description}
+                      </span>
+                    </a>
+                  </SheetClose>
                 </Link>
               ))}
             </div>

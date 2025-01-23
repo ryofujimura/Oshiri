@@ -32,6 +32,15 @@ export default function Home() {
     },
   });
 
+  // Function to limit reviews based on screen size
+  const getDisplayedReviews = (reviews: Review[] = []) => {
+    // 2 rows of reviews based on screen size:
+    // Mobile (1 column): 2 reviews
+    // Tablet (2 columns): 4 reviews
+    // Desktop (3 columns): 6 reviews
+    return reviews.slice(0, 6);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -51,7 +60,6 @@ export default function Home() {
       </header>
 
       <main>
-        {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-primary/10 to-primary/5 py-32">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
@@ -103,22 +111,34 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
             <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
           </div>
         </section>
 
-        {/* Recent Reviews Section */}
         {recentReviews && recentReviews.length > 0 && (
           <section className="py-24 bg-background">
             <div className="container mx-auto px-4">
-              <h3 className="text-3xl font-bold text-center mb-12">Recent Reviews</h3>
+              <div className="flex justify-between items-center mb-12">
+                <h3 className="text-3xl font-bold">Recent Reviews</h3>
+                {recentReviews.length > 6 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation('/reviews')}
+                    className="text-sm"
+                  >
+                    View All
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {recentReviews.map((review: Review) => (
-                  <Card key={review.id} className="cursor-pointer hover:shadow-lg transition-shadow"
-                        onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}>
+                {getDisplayedReviews(recentReviews).map((review: Review) => (
+                  <Card 
+                    key={review.id} 
+                    className="cursor-pointer hover:shadow-lg transition-shadow duration-200 hover:scale-[1.02]"
+                    onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-4">
                         <Sofa className="h-5 w-5 text-primary" />
@@ -145,7 +165,6 @@ export default function Home() {
           </section>
         )}
 
-        {/* Features Section */}
         <section className="py-24 bg-primary/5">
           <div className="container mx-auto px-4">
             <h3 className="text-3xl font-bold text-center mb-12">Why Choose Oshiri?</h3>
@@ -187,7 +206,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How It Works Section */}
         <section className="py-24 bg-background">
           <div className="container mx-auto px-4">
             <h3 className="text-3xl font-bold text-center mb-12">How It Works</h3>
@@ -236,7 +254,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Call to Action */}
         <section className="py-24 bg-primary/5">
           <div className="container mx-auto px-4 text-center">
             <h3 className="text-3xl font-bold mb-6">Ready to Find Your Perfect Seat?</h3>
