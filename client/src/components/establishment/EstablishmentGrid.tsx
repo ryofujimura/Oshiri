@@ -347,33 +347,49 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   // Render establishment grid
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {establishments.map((establishment: Establishment) => (
-        <Card key={establishment.id} className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
-            {establishment.photos && establishment.photos.length > 0 && (
-              <div className="relative w-full h-40 mb-4 overflow-hidden rounded-md">
-                <YelpImageCarousel
-                  photos={establishment.photos}
-                  aspectRatio={16/9}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+        <Card key={establishment.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-5 h-full">
+              {/* Image Section - 2/5 width */}
+              <div className="col-span-2 relative h-full min-h-[200px]">
+                {establishment.photos && establishment.photos.length > 0 ? (
+                  <YelpImageCarousel
+                    photos={establishment.photos}
+                    aspectRatio={3/4}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                    <img 
+                      src="/placeholder-restaurant.png" 
+                      alt="No image available"
+                      className="w-12 h-12 opacity-50"
+                    />
+                  </div>
+                )}
               </div>
-            )}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {establishment.location.address1}, {establishment.location.city}
-              </p>
-              <div className="flex justify-between items-center pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">⭐ {establishment.rating}</span>
+
+              {/* Content Section - 3/5 width */}
+              <div className="col-span-3 p-4 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {establishment.location.address1}, {establishment.location.city}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">⭐ {establishment.rating}</span>
+                  </div>
                 </div>
-                <Link href={`/establishments/${establishment.id}`}>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
-                </Link>
+
+                <div className="mt-4">
+                  <Link href={`/establishments/${establishment.id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      View Details
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </CardContent>
