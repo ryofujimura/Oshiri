@@ -311,29 +311,38 @@ export default function EstablishmentDetails() {
       {/* Establishment Info */}
       <section className="bg-primary/5 py-12">
         <div className="container mx-auto px-4">
-          {establishment.photos && establishment.photos.length > 0 && (
-            <div className="mb-8 max-w-4xl mx-auto">
-              <YelpImageCarousel photos={establishment.photos} />
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold">{establishment.name}</h1>
+              <div className="flex flex-wrap gap-4 text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  📍
+                  <span>
+                    {establishment.location?.address1}, {establishment.location?.city}
+                  </span>
+                </div>
+                {establishment.phone && (
+                  <div className="flex items-center gap-1">
+                    📞
+                    <span>{establishment.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  ⭐
+                  <span>{establishment.rating}/5</span>
+                </div>
+              </div>
             </div>
-          )}
-          <h1 className="text-4xl font-bold mb-4">{establishment.name}</h1>
-          <div className="flex flex-wrap gap-4 text-muted-foreground">
-            <div className="flex items-center gap-1">
-              📍
-              <span>
-                {establishment.location?.address1}, {establishment.location?.city}
-              </span>
-            </div>
-            {establishment.phone && (
-              <div className="flex items-center gap-1">
-                📞
-                <span>{establishment.phone}</span>
+
+            {establishment.photos && establishment.photos.length > 0 && (
+              <div className="w-full max-w-md mx-auto lg:mx-0">
+                <YelpImageCarousel 
+                  photos={establishment.photos} 
+                  aspectRatio={16/9}
+                  className="rounded-lg shadow-md"
+                />
               </div>
             )}
-            <div className="flex items-center gap-1">
-              ⭐
-              <span>{establishment.rating}/5</span>
-            </div>
           </div>
         </div>
       </section>

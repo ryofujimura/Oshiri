@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { YelpImageCarousel } from './YelpImageCarousel';
 
 interface Establishment {
   id: string;
@@ -15,6 +16,7 @@ interface Establishment {
     state: string;
   };
   rating: string;
+  photos?: string[];
 }
 
 interface SearchParams {
@@ -116,7 +118,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       return response.json();
     },
     enabled: !!(
-      (searchParams?.location && searchParams.location.trim() !== '') || 
+      (searchParams?.location && searchParams.location.trim() !== '') ||
       coordinates ||
       isLocating === false
     ),
@@ -195,22 +197,31 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.businesses.map((establishment: Establishment) => (
         <Card key={establishment.id} className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <h3 className="text-lg font-semibold">{establishment.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {establishment.location.address1}, {establishment.location.city}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">Rating: {establishment.rating}</span>
+          <CardContent className="p-4">
+            {establishment.photos && establishment.photos.length > 0 && (
+              <div className="mb-4">
+                <YelpImageCarousel
+                  photos={establishment.photos}
+                  aspectRatio={3 / 2}
+                  className="h-[120px]"
+                />
               </div>
-              <Link href={`/establishments/${establishment.id}`}>
-                <Button variant="outline" size="sm">
-                  View Seats
-                </Button>
-              </Link>
+            )}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">{establishment.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {establishment.location.address1}, {establishment.location.city}
+              </p>
+              <div className="flex justify-between items-center pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Rating: {establishment.rating}</span>
+                </div>
+                <Link href={`/establishments/${establishment.id}`}>
+                  <Button variant="outline" size="sm">
+                    View Seats
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
