@@ -1,19 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search as SearchIcon, MapPin } from 'lucide-react';
 import { EstablishmentGrid } from '@/components/establishment/EstablishmentGrid';
+import { Link } from 'wouter';
 
 export default function Search() {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchParams, setSearchParams] = useState<{ term?: string; location?: string } | undefined>();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
+
+    // Only set search params if at least one field has content
+    if (searchTerm.trim() || location.trim()) {
+      setSearchParams({
+        term: searchTerm.trim() || undefined,
+        location: location.trim() || undefined
+      });
       setIsSearching(true);
     }
   };
@@ -24,7 +32,11 @@ export default function Search() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <Link href="/">
+                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  Oshiri
+                </a>
+              </Link>
               <MainNav />
             </div>
             <AuthButton />
@@ -61,14 +73,7 @@ export default function Search() {
         </section>
 
         <section className="container mx-auto px-4 py-12">
-          <EstablishmentGrid 
-            searchParams={
-              isSearching ? { 
-                term: searchTerm,
-                location: location || undefined 
-              } : undefined
-            } 
-          />
+          <EstablishmentGrid searchParams={searchParams} />
         </section>
       </main>
     </div>

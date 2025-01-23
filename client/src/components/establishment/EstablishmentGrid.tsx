@@ -30,10 +30,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get location if:
-    // 1. No search params provided (showing nearby)
-    // 2. Search term provided but no location (use current location)
-    if ((!searchParams || (searchParams.term && !searchParams.location)) && "geolocation" in navigator) {
+    // Get location if no location is provided in search params
+    if ((!searchParams?.location || searchParams.location.trim() === '') && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCoordinates({
@@ -45,48 +43,56 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         (error) => {
           console.error('Geolocation error:', error);
           setLocationError("Please enable location services or provide a location");
+          setCoordinates(null);
         }
       );
+    } else {
+      // If location is provided in search params, clear coordinates
+      setCoordinates(null);
     }
-  }, [searchParams]);
+  }, [searchParams?.location]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: searchParams 
-      ? ['/api/establishments/search', searchParams.term, searchParams.location || coordinates?.latitude]
-      : ['/api/establishments/nearby', coordinates?.latitude, coordinates?.longitude],
+    queryKey: ['establishments', searchParams?.term, searchParams?.location || coordinates?.latitude],
     queryFn: async () => {
-      let url = '/api/establishments/';
+      let url = '/api/establishments/search?';
+      const params = new URLSearchParams();
 
+      // Add search term if provided
       if (searchParams?.term) {
-        const params = new URLSearchParams({
-          term: searchParams.term,
-        });
+        params.append('term', searchParams.term);
+      }
 
-        if (searchParams.location) {
-          params.append('location', searchParams.location);
-        } else if (coordinates) {
-          params.append('latitude', coordinates.latitude.toString());
-          params.append('longitude', coordinates.longitude.toString());
-        }
-
-        url += `search?${params}`;
+      // Add location if provided, otherwise use coordinates
+      if (searchParams?.location && searchParams.location.trim() !== '') {
+        params.append('location', searchParams.location);
       } else if (coordinates) {
-        url += `nearby?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}`;
-      } else {
+        params.append('latitude', coordinates.latitude.toString());
+        params.append('longitude', coordinates.longitude.toString());
+      }
+
+      // If neither location nor coordinates are available, return empty results
+      if (!searchParams?.location && !coordinates) {
         return { businesses: [] };
       }
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch establishments');
+      const response = await fetch(`${url}${params}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch establishments');
+      }
       return response.json();
     },
-    enabled: !!(searchParams?.term || coordinates),
+    enabled: !!(
+      (searchParams?.term || searchParams?.location) || 
+      (coordinates && (!searchParams?.location || searchParams.location.trim() === ''))
+    ),
   });
 
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">Error loading establishments. Please try again later.</p>
+        <p className="text-red-500">{(error as Error).message}</p>
       </div>
     );
   }
