@@ -1,12 +1,11 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquarePlus } from 'lucide-react';
-import { WebsiteFeedbackDialog } from './WebsiteFeedbackDialog';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 
 export function FeedbackButton() {
-  const [open, setOpen] = useState(false);
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -19,21 +18,18 @@ export function FeedbackButton() {
       });
       return;
     }
-    setOpen(true);
+    setLocation('/feedback');
   };
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed bottom-6 right-6 shadow-md"
-        onClick={handleClick}
-      >
-        <MessageSquarePlus className="h-4 w-4 mr-2" />
-        Feedback
-      </Button>
-      <WebsiteFeedbackDialog open={open} onOpenChange={setOpen} />
-    </>
+    <Button
+      variant="outline"
+      size="sm"
+      className="fixed bottom-6 right-6 shadow-md"
+      onClick={handleClick}
+    >
+      <MessageSquarePlus className="h-4 w-4 mr-2" />
+      Feedback
+    </Button>
   );
 }

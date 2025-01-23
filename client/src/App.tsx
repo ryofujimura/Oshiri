@@ -10,6 +10,8 @@ import EstablishmentDetails from "@/pages/EstablishmentDetails";
 import Profile from "@/pages/profile";
 import TopRated from "@/pages/TopRated";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
+import Feedback from "@/pages/feedback";
+import AdminFeedback from "@/pages/admin/feedback";
 
 function Router() {
   return (
@@ -20,6 +22,8 @@ function Router() {
       <Route path="/establishments/:yelpId" component={EstablishmentDetails} />
       <Route path="/profile" component={Profile} />
       <Route path="/top-rated" component={TopRated} />
+      <Route path="/feedback" component={Feedback} />
+      <Route path="/admin/feedback" component={AdminFeedback} />
       <Route component={NotFound} />
     </Switch>
   );

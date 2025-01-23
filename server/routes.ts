@@ -5,6 +5,7 @@ import { setupEstablishmentRoutes } from "./establishment";
 import { setupUserRoutes } from "./user";
 import { db } from "@db";
 import { websiteFeedback } from "@db/schema";
+import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
@@ -16,7 +17,23 @@ export function registerRoutes(app: Express): Server {
   // Setup user routes (/api/users/*)
   setupUserRoutes(app);
 
-  // Website feedback endpoint
+  // Get all feedback
+  app.get('/api/feedback', async (_req, res, next) => {
+    try {
+      const feedback = await db.query.websiteFeedback.findMany({
+        with: {
+          user: true,
+        },
+        orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
+      });
+
+      res.json(feedback);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Submit new feedback
   app.post('/api/feedback', async (req, res, next) => {
     try {
       if (!req.isAuthenticated()) {
@@ -35,6 +52,79 @@ export function registerRoutes(app: Express): Server {
           content,
           category,
         })
+        .returning();
+
+      res.json(feedback);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Vote on feedback
+  app.post('/api/feedback/:id/vote', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Authentication required');
+      }
+
+      const feedbackId = parseInt(req.params.id);
+      const { type } = req.body;
+
+      if (!['up', 'down'].includes(type)) {
+        return res.status(400).send('Invalid vote type');
+      }
+
+      const [feedback] = await db
+        .update(websiteFeedback)
+        .set({
+          [type === 'up' ? 'upvotes' : 'downvotes']: db.raw('?? + 1', [type === 'up' ? 'upvotes' : 'downvotes']),
+        })
+        .where(eq(websiteFeedback.id, feedbackId))
+        .returning();
+
+      res.json(feedback);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/feedback', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || req.user!.role !== 'admin') {
+        return res.status(403).send('Admin access required');
+      }
+
+      const feedback = await db.query.websiteFeedback.findMany({
+        with: {
+          user: true,
+        },
+        orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
+      });
+
+      res.json(feedback);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch('/api/admin/feedback/:id', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || req.user!.role !== 'admin') {
+        return res.status(403).send('Admin access required');
+      }
+
+      const feedbackId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!['pending', 'in-progress', 'completed', 'declined'].includes(status)) {
+        return res.status(400).send('Invalid status');
+      }
+
+      const [feedback] = await db
+        .update(websiteFeedback)
+        .set({ status })
+        .where(eq(websiteFeedback.id, feedbackId))
         .returning();
 
       res.json(feedback);
