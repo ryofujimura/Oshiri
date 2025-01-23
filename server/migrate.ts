@@ -1,28 +1,70 @@
 import { db } from "@db";
-import { contents, images } from "@db/schema";
-import { eq, isNotNull } from "drizzle-orm";
+import { establishments, seats, images } from "@db/schema";
+import { eq } from "drizzle-orm";
 
-export async function migrateImageData() {
+// Function to migrate data from old content structure to new seating structure
+export async function migrateData() {
   try {
-    // Get all contents with existing image_url
-    const contentsWithImages = await db
-      .select()
-      .from(contents)
-      .where(isNotNull(contents.imageUrl));
+    // First, create a default establishment for old content
+    const [defaultEstablishment] = await db
+      .insert(establishments)
+      .values({
+        yelpId: 'legacy-content',
+        name: 'Legacy Content',
+        address: 'N/A',
+        city: 'N/A',
+        state: 'N/A',
+        zipCode: 'N/A',
+        latitude: 0,
+        longitude: 0,
+      })
+      .returning();
 
-    // For each content with an image, create a new image record
-    for (const content of contentsWithImages) {
-      if (content.imageUrl) {
-        await db.insert(images).values({
-          imageUrl: content.imageUrl,
-          contentId: content.id,
-        });
+    // Get all old content
+    const oldContents = await db.query.contents.findMany({
+      with: {
+        images: true,
+        user: true,
+      },
+    });
+
+    // For each old content, create a new seat
+    for (const content of oldContents) {
+      // Create new seat
+      const [newSeat] = await db
+        .insert(seats)
+        .values({
+          establishmentId: defaultEstablishment.id,
+          userId: content.userId || 1, // Default to user 1 if no user
+          type: 'unknown',
+          capacity: 1,
+          comfortRating: 'unknown',
+          hasPowerOutlet: false,
+          description: content.description,
+          upvotes: content.upvotes,
+          downvotes: content.downvotes,
+        })
+        .returning();
+
+      // Migrate images
+      if (content.images && content.images.length > 0) {
+        const imageInserts = content.images.map(image => ({
+          seatId: newSeat.id,
+          imageUrl: image.imageUrl,
+          publicId: image.publicId,
+          width: image.width,
+          height: image.height,
+          format: image.format,
+          metadata: image.metadata,
+        }));
+
+        await db.insert(images).values(imageInserts);
       }
     }
 
-    console.log('Successfully migrated image data');
+    console.log('Successfully migrated data to new schema');
   } catch (error) {
-    console.error('Error migrating image data:', error);
+    console.error('Error migrating data:', error);
     throw error;
   }
 }

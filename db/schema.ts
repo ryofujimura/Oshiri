@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, integer, jsonb, boolean, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -10,90 +10,133 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+export const establishments = pgTable("establishments", {
+  id: serial("id").primaryKey(),
+  yelpId: text("yelp_id").unique().notNull(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  yelpRating: decimal("yelp_rating", { precision: 2, scale: 1 }),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const seats = pgTable("seats", {
+  id: serial("id").primaryKey(),
+  establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // e.g., "chair", "sofa", "bench"
+  capacity: integer("capacity").notNull(), // number of people it can seat
+  comfortRating: varchar("comfort_rating", { length: 20 }).notNull(), // "Hard", "Comfortable", "Torn"
+  hasPowerOutlet: boolean("has_power_outlet").notNull(),
+  noiseLevel: varchar("noise_level", { length: 20 }), // "Quiet", "Moderate", "Loud"
+  description: text("description"),
+  upvotes: integer("upvotes").default(0).notNull(),
+  downvotes: integer("downvotes").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const images = pgTable("images", {
+  id: serial("id").primaryKey(),
+  seatId: integer("seat_id").references(() => seats.id).notNull(),
+  imageUrl: text("image_url").notNull(),
+  publicId: text("public_id").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  format: varchar("format", { length: 10 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const wifiSpeeds = pgTable("wifi_speeds", {
+  id: serial("id").primaryKey(),
+  establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  downloadSpeed: decimal("download_speed", { precision: 10, scale: 2 }).notNull(), // in Mbps
+  uploadSpeed: decimal("upload_speed", { precision: 10, scale: 2 }).notNull(), // in Mbps
+  latency: integer("latency"), // in ms
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+});
+
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").unique().notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // e.g., "amenity", "atmosphere"
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const establishmentTags = pgTable("establishment_tags", {
+  establishmentId: integer("establishment_id").references(() => establishments.id).notNull(),
+  tagId: integer("tag_id").references(() => tags.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // who added this tag
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Relations
+export const userRelations = relations(users, ({ many }) => ({
+  seats: many(seats),
+  wifiSpeeds: many(wifiSpeeds),
+  establishmentTags: many(establishmentTags)
+}));
+
+export const establishmentRelations = relations(establishments, ({ many }) => ({
+  seats: many(seats),
+  wifiSpeeds: many(wifiSpeeds),
+  tags: many(establishmentTags)
+}));
+
+export const seatRelations = relations(seats, ({ one, many }) => ({
+  establishment: one(establishments, {
+    fields: [seats.establishmentId],
+    references: [establishments.id],
+  }),
+  user: one(users, {
+    fields: [seats.userId],
+    references: [users.id],
+  }),
+  images: many(images)
+}));
+
+export const imageRelations = relations(images, ({ one }) => ({
+  seat: one(seats, {
+    fields: [images.seatId],
+    references: [seats.id],
+  })
+}));
+
+// Schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").unique().notNull(),
-  slug: text("slug").unique().notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
+export const insertEstablishmentSchema = createInsertSchema(establishments);
+export const selectEstablishmentSchema = createSelectSchema(establishments);
+export type InsertEstablishment = typeof establishments.$inferInsert;
+export type SelectEstablishment = typeof establishments.$inferSelect;
 
-export const contentCategories = pgTable("content_categories", {
-  contentId: integer("content_id").references(() => contents.id).notNull(),
-  categoryId: integer("category_id").references(() => categories.id).notNull()
-});
-
-// Keep the image_url column for now, we'll migrate data before removing it
-export const contents = pgTable("contents", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  imageUrl: text("image_url"),  // Keeping this temporarily for data migration
-  userId: integer("user_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  upvotes: integer("upvotes").default(0).notNull(),
-  downvotes: integer("downvotes").default(0).notNull()
-});
-
-export const images = pgTable("images", {
-  id: serial("id").primaryKey(),
-  imageUrl: text("image_url").notNull(),
-  publicId: text("public_id").notNull(),  // Cloudinary public ID
-  width: integer("width"),
-  height: integer("height"),
-  format: varchar("format", { length: 10 }),
-  metadata: jsonb("metadata"),  // For storing additional Cloudinary metadata
-  contentId: integer("content_id").references(() => contents.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-
-export const contentRelations = relations(contents, ({ many, one }) => ({
-  images: many(images),
-  user: one(users, {
-    fields: [contents.userId],
-    references: [users.id],
-  }),
-  categories: many(contentCategories),
-}));
-
-export const categoryRelations = relations(categories, ({ many }) => ({
-  contents: many(contentCategories),
-}));
-
-export const contentCategoryRelations = relations(contentCategories, ({ one }) => ({
-  content: one(contents, {
-    fields: [contentCategories.contentId],
-    references: [contents.id],
-  }),
-  category: one(categories, {
-    fields: [contentCategories.categoryId],
-    references: [categories.id],
-  }),
-}));
-
-export const imageRelations = relations(images, ({ one }) => ({
-  content: one(contents, {
-    fields: [images.contentId],
-    references: [contents.id],
-  }),
-}));
-
-export const insertContentSchema = createInsertSchema(contents);
-export const selectContentSchema = createSelectSchema(contents);
-export type InsertContent = typeof contents.$inferInsert;
-export type SelectContent = typeof contents.$inferSelect;
+export const insertSeatSchema = createInsertSchema(seats);
+export const selectSeatSchema = createSelectSchema(seats);
+export type InsertSeat = typeof seats.$inferInsert;
+export type SelectSeat = typeof seats.$inferSelect;
 
 export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export type InsertImage = typeof images.$inferInsert;
 export type SelectImage = typeof images.$inferSelect;
 
-export const insertCategorySchema = createInsertSchema(categories);
-export const selectCategorySchema = createSelectSchema(categories);
-export type InsertCategory = typeof categories.$inferInsert;
-export type SelectCategory = typeof categories.$inferSelect;
+export const insertWifiSpeedSchema = createInsertSchema(wifiSpeeds);
+export const selectWifiSpeedSchema = createSelectSchema(wifiSpeeds);
+export type InsertWifiSpeed = typeof wifiSpeeds.$inferInsert;
+export type SelectWifiSpeed = typeof wifiSpeeds.$inferSelect;
+
+export const insertTagSchema = createInsertSchema(tags);
+export const selectTagSchema = createSelectSchema(tags);
+export type InsertTag = typeof tags.$inferInsert;
+export type SelectTag = typeof tags.$inferSelect;
