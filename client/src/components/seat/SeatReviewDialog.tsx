@@ -13,13 +13,13 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, X } from 'lucide-react';
 
-// Update schema to enforce proper types
+// Update schema to make most fields optional
 const seatReviewSchema = z.object({
   type: z.string().min(1, 'Please select a seat type'),
-  capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  comfortRating: z.string().min(1, 'Please select a comfort rating'),
-  hasPowerOutlet: z.boolean(),
-  noiseLevel: z.string().min(1, 'Please select a noise level'),
+  capacity: z.coerce.number().optional(),
+  comfortRating: z.string().optional(),
+  hasPowerOutlet: z.boolean().optional().default(false),
+  noiseLevel: z.string().optional(),
   description: z.string().optional(),
 });
 

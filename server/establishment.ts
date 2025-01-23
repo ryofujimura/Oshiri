@@ -191,7 +191,7 @@ export function setupEstablishmentRoutes(app: Express) {
         // Convert form data types before validation
         const formData = {
           ...req.body,
-          capacity: parseInt(req.body.capacity),
+          capacity: req.body.capacity ? parseInt(req.body.capacity) : undefined,
           hasPowerOutlet: req.body.hasPowerOutlet === 'true',
           userId: req.user.id,
           establishmentId: establishment.id
