@@ -6,24 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Search as SearchIcon, MapPin } from 'lucide-react';
 import { EstablishmentGrid } from '@/components/establishment/EstablishmentGrid';
 import { Link } from 'wouter';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Search() {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchParams, setSearchParams] = useState<{ term?: string; location?: string } | undefined>();
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
-    // Only set search params if at least one field has content
-    if (searchTerm.trim() || location.trim()) {
-      setSearchParams({
-        term: searchTerm.trim() || undefined,
-        location: location.trim() || undefined
-      });
-      setIsSearching(true);
-    }
+    // Location is optional as we'll try to use geolocation if not provided
+    setSearchParams({
+      term: searchTerm.trim() || undefined,
+      location: location.trim() || undefined
+    });
+    setIsSearching(true);
   };
 
   return (
@@ -61,14 +62,23 @@ export default function Search() {
               <div className="relative flex-1">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Location (optional)"
+                  placeholder="Enter location (or allow location access)"
                   className="pl-10"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  aria-label="Location"
                 />
               </div>
               <Button type="submit" className="md:w-auto">Search</Button>
             </form>
+            {error && (
+              <Alert variant="destructive" className="mt-4 max-w-2xl">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">
+              Note: If no location is provided, we'll try to use your current location
+            </p>
           </div>
         </section>
 

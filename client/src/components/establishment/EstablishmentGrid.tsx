@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Establishment {
   id: string;
@@ -28,10 +29,11 @@ interface EstablishmentGridProps {
 export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
-    // Get location if no location is provided in search params
     if ((!searchParams?.location || searchParams.location.trim() === '') && "geolocation" in navigator) {
+      setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCoordinates({
@@ -39,16 +41,18 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
             longitude: position.coords.longitude
           });
           setLocationError(null);
+          setIsLocating(false);
         },
         (error) => {
           console.error('Geolocation error:', error);
           setLocationError("Please enable location services or provide a location");
           setCoordinates(null);
+          setIsLocating(false);
         }
       );
     } else {
-      // If location is provided in search params, clear coordinates
       setCoordinates(null);
+      setIsLocating(false);
     }
   }, [searchParams?.location]);
 
@@ -58,22 +62,17 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       let url = '/api/establishments/search?';
       const params = new URLSearchParams();
 
-      // Add search term if provided
       if (searchParams?.term) {
         params.append('term', searchParams.term);
       }
 
-      // Add location if provided, otherwise use coordinates
       if (searchParams?.location && searchParams.location.trim() !== '') {
         params.append('location', searchParams.location);
       } else if (coordinates) {
         params.append('latitude', coordinates.latitude.toString());
         params.append('longitude', coordinates.longitude.toString());
-      }
-
-      // If neither location nor coordinates are available, return empty results
-      if (!searchParams?.location && !coordinates) {
-        return { businesses: [] };
+      } else {
+        throw new Error("Please provide a location or enable location services");
       }
 
       const response = await fetch(`${url}${params}`);
@@ -84,24 +83,36 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       return response.json();
     },
     enabled: !!(
-      (searchParams?.term || searchParams?.location) || 
-      (coordinates && (!searchParams?.location || searchParams.location.trim() === ''))
+      (searchParams?.location && searchParams.location.trim() !== '') || 
+      coordinates ||
+      isLocating === false
     ),
   });
 
-  if (error) {
+  if (isLocating) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500">{(error as Error).message}</p>
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="w-8 h-8 animate-spin mr-2" />
+        <span>Detecting your location...</span>
       </div>
     );
   }
 
-  if (!searchParams && locationError) {
+  if (locationError) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500">{locationError}</p>
-      </div>
+      <Alert variant="destructive" className="my-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{locationError}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="my-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{(error as Error).message}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -115,9 +126,9 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   if (!data?.businesses?.length) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No establishments found.</p>
-      </div>
+      <Alert className="my-4">
+        <AlertDescription>No establishments found. Try adjusting your search criteria.</AlertDescription>
+      </Alert>
     );
   }
 
