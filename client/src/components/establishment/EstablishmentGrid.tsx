@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'wouter';
 import { YelpImageCarousel } from './YelpImageCarousel';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,7 +43,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [permissionState, setPermissionState] = useState<PermissionState | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Function to handle different types of location errors
   const handleLocationError = (error: GeolocationPositionError) => {
     console.error('Geolocation error:', error);
     let type: LocationErrorType = 'position';
@@ -67,9 +65,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
     setLocationError(type);
     setErrorMessage(message);
-    setIsLocating(false); // Always reset isLocating on error
+    setIsLocating(false);
 
-    // Only retry for timeout errors
     if (type === 'timeout' && retryCount < MAX_RETRIES) {
       setTimeout(() => {
         setRetryCount(prev => prev + 1);
@@ -80,7 +77,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     }
   };
 
-  // Try to load cached location
   useEffect(() => {
     const cachedLocation = localStorage.getItem('lastKnownLocation');
     if (cachedLocation) {
@@ -90,7 +86,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
         if (Date.now() - timestamp < oneHour) {
           setCoordinates({ latitude, longitude });
-          setIsLocating(false); // Reset isLocating when using cached location
+          setIsLocating(false);
         }
       } catch (error) {
         console.error('Error parsing cached location:', error);
@@ -98,7 +94,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     }
   }, []);
 
-  // Function to request and handle location
   const requestLocation = async () => {
     if (!("geolocation" in navigator)) {
       setLocationError('unavailable');
@@ -111,12 +106,11 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     setLocationError(null);
     setErrorMessage(null);
 
-    // Add a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
       setIsLocating(false);
       setLocationError('timeout');
       setErrorMessage("Location detection took too long. Showing general results.");
-    }, 10000); // 10 second timeout
+    }, 10000);
 
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -127,7 +121,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         });
       });
 
-      clearTimeout(timeoutId); // Clear timeout on success
+      clearTimeout(timeoutId);
 
       const newCoordinates = {
         latitude: position.coords.latitude,
@@ -138,19 +132,18 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       setLocationError(null);
       setErrorMessage(null);
       setRetryCount(0);
-      setIsLocating(false); // Reset isLocating on success
+      setIsLocating(false);
 
       localStorage.setItem('lastKnownLocation', JSON.stringify({
         ...newCoordinates,
         timestamp: Date.now()
       }));
     } catch (error) {
-      clearTimeout(timeoutId); // Clear timeout on error
+      clearTimeout(timeoutId);
       handleLocationError(error as GeolocationPositionError);
     }
   };
 
-  // Check permission and request location on mount, but only if we don't have search params
   useEffect(() => {
     if (!searchParams?.term && !searchParams?.location) {
       const checkPermissionAndLocation = async () => {
@@ -162,7 +155,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
             if (permissionStatus.state === 'granted') {
               requestLocation();
             } else {
-              setIsLocating(false); // Reset if permission not granted
+              setIsLocating(false);
             }
 
             permissionStatus.onchange = () => {
@@ -181,12 +174,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
       checkPermissionAndLocation();
     } else {
-      // If we have search params, don't try to get location
       setIsLocating(false);
     }
   }, [searchParams]);
 
-  // Query for nearby establishments (default view)
   const nearbyQuery = useQuery({
     queryKey: ['nearby-establishments', coordinates?.latitude, coordinates?.longitude],
     queryFn: async () => {
@@ -208,7 +199,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     enabled: !!coordinates && !searchParams?.term && !searchParams?.location,
   });
 
-  // Query for search results (when user searches)
   const searchQuery = useQuery({
     queryKey: ['establishments', searchParams?.term, searchParams?.location],
     queryFn: async () => {
@@ -235,7 +225,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     enabled: !!(searchParams?.term || searchParams?.location),
   });
 
-  // Show loading state with retry count if applicable
   if (isLocating) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -251,7 +240,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Handle errors with appropriate messages and actions
   if (locationError && !searchParams?.location) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -284,7 +272,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Show location button if no coordinates and no search
   if (!coordinates && !searchParams?.term && !searchParams?.location && !isLocating && permissionState !== 'granted') {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -307,7 +294,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Handle query errors
   if (searchQuery.error || nearbyQuery.error) {
     const error = searchQuery.error || nearbyQuery.error;
     return (
@@ -318,7 +304,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Show loading state for queries
   if ((searchParams && searchQuery.isLoading) || (!searchParams && nearbyQuery.isLoading)) {
     return (
       <div className="flex justify-center py-8">
@@ -327,7 +312,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Determine which data to show
   const establishments = searchParams?.term || searchParams?.location
     ? searchQuery.data?.businesses || []
     : nearbyQuery.data?.businesses || [];
@@ -345,55 +329,50 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     );
   }
 
-  // Render establishment grid
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {establishments.map((establishment: Establishment) => (
-        <Card key={establishment.id} className="hover:shadow-lg transition-shadow overflow-hidden">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-5 h-full">
-              {/* Image Section - 2/5 width */}
-              <div className="col-span-2 relative h-full min-h-[200px]">
-                {establishment.photos && establishment.photos.length > 0 ? (
-                  <YelpImageCarousel
-                    photos={establishment.photos}
-                    aspectRatio={3/4}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                    <img 
-                      src="/placeholder-restaurant.png" 
-                      alt="No image available"
-                      className="w-12 h-12 opacity-50"
+        <Link 
+          key={establishment.id}
+          href={`/establishments/${establishment.id}`}
+          className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+        >
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-5 h-full">
+                <div className="col-span-2 relative h-full min-h-[200px]">
+                  {establishment.photos && establishment.photos.length > 0 ? (
+                    <YelpImageCarousel
+                      photos={establishment.photos}
+                      aspectRatio={3/4}
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
-                  </div>
-                )}
-              </div>
-
-              {/* Content Section - 3/5 width */}
-              <div className="col-span-3 p-4 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {establishment.location.address1}, {establishment.location.city}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">⭐ {establishment.rating}</span>
-                  </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                      <img 
+                        src="/placeholder-restaurant.png" 
+                        alt="No image available"
+                        className="w-12 h-12 opacity-50"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4">
-                  <Link href={`/establishments/${establishment.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Details
-                    </Button>
-                  </Link>
+                <div className="col-span-3 p-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold line-clamp-1">{establishment.name}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {establishment.location.address1}, {establishment.location.city}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">⭐ {establishment.rating}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );
