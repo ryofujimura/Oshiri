@@ -46,11 +46,18 @@ export async function searchEstablishments(params: SearchParams): Promise<Search
   }
 }
 
-export async function getEstablishmentDetails(yelpId: string): Promise<Business> {
+export async function getEstablishmentDetails(yelpId: string): Promise<Business & { photos: string[] }> {
   try {
     // @ts-ignore - yelp-fusion doesn't have type definitions
     const response = await client.business(yelpId);
-    return response.jsonBody as Business;
+    const business = response.jsonBody as Business;
+
+    // Add photos to the response if available
+    const photos = business.photos || [];
+    return {
+      ...business,
+      photos: photos.slice(0, 5) // Limit to first 5 photos
+    };
   } catch (error: any) {
     console.error('Error getting establishment details:', error);
     throw new Error(error.response?.body?.error?.description || error.message);

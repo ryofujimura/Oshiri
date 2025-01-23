@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { YelpImageCarousel } from "@/components/establishment/YelpImageCarousel";
 
 interface Seat {
   id: number;
@@ -310,6 +311,11 @@ export default function EstablishmentDetails() {
       {/* Establishment Info */}
       <section className="bg-primary/5 py-12">
         <div className="container mx-auto px-4">
+          {establishment.photos && establishment.photos.length > 0 && (
+            <div className="mb-8 max-w-4xl mx-auto">
+              <YelpImageCarousel photos={establishment.photos} />
+            </div>
+          )}
           <h1 className="text-4xl font-bold mb-4">{establishment.name}</h1>
           <div className="flex flex-wrap gap-4 text-muted-foreground">
             <div className="flex items-center gap-1">

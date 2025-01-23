@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { FloatingActionMenu } from "@/components/ui/floating-action-menu";
 import { Plus, MapPin as MapPinIcon, Star as StarIcon, Search as SearchIcon } from "lucide-react";
+import { YelpImageCarousel } from "@/components/establishment/YelpImageCarousel";
 
 interface Review {
   id: number;
@@ -19,6 +20,7 @@ interface Review {
   establishment: {
     name: string;
     yelpId: string;
+    photos?: string[];
   };
   createdAt: string;
 }
@@ -174,6 +176,14 @@ export default function Home() {
                       onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}
                     >
                       <CardContent className="p-6">
+                        {review.establishment.photos && review.establishment.photos.length > 0 && (
+                          <div className="mb-4">
+                            <YelpImageCarousel 
+                              photos={review.establishment.photos} 
+                              aspectRatio={4/3}
+                            />
+                          </div>
+                        )}
                         <div className="flex items-center gap-3 mb-4">
                           <div className="p-2 rounded-lg bg-gray-100">
                             <Sofa className="h-5 w-5" />
