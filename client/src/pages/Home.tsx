@@ -2,7 +2,6 @@ import { AuthButton } from '@/components/auth/AuthButton';
 import { MainNav } from '@/components/layout/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { IconFallback } from '@/components/ui/icon-fallback';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 
@@ -51,7 +50,7 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Find Your Perfect Seat <IconFallback name="Sofa" className="inline-block h-12 w-12 ml-2" />
+                Find Your Perfect Seat 🪑
               </h2>
               <p className="text-xl text-muted-foreground mb-12">
                 Discover and rate the most comfortable seats in cafes and restaurants.
@@ -64,7 +63,7 @@ export default function Home() {
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/search')}
                 >
-                  <IconFallback name="Search" className="w-5 h-5" />
+                  <span className="text-xl">🔍</span>
                   <div className="text-left">
                     <div className="font-semibold">Search</div>
                     <div className="text-sm text-muted-foreground">Find your perfect spot</div>
@@ -76,7 +75,7 @@ export default function Home() {
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/near-me')}
                 >
-                  <IconFallback name="MapPin" className="w-5 h-5" />
+                  <span className="text-xl">📍</span>
                   <div className="text-left">
                     <div className="font-semibold">Near Me</div>
                     <div className="text-sm text-muted-foreground">Discover local gems</div>
@@ -88,7 +87,7 @@ export default function Home() {
                   className="flex items-center gap-2 h-auto py-6 px-4"
                   onClick={() => setLocation('/top-rated')}
                 >
-                  <IconFallback name="Star" className="w-5 h-5" />
+                  <span className="text-xl">⭐</span>
                   <div className="text-left">
                     <div className="font-semibold">Top Rated</div>
                     <div className="text-sm text-muted-foreground">Best seating experiences</div>
@@ -114,7 +113,7 @@ export default function Home() {
                         onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <IconFallback name="Sofa" className="h-5 w-5 text-primary" />
+                        <span className="text-xl">🪑</span>
                         <h4 className="font-semibold">{review.establishment.name}</h4>
                       </div>
                       <div className="space-y-2">
@@ -145,7 +144,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="relative overflow-hidden group">
                 <CardContent className="p-6">
-                  <IconFallback name="Sofa" className="h-8 w-8 mb-4 text-primary" />
+                  <span className="block text-3xl mb-4">🪑</span>
                   <h4 className="text-xl font-semibold mb-2">Detailed Reviews</h4>
                   <p className="text-muted-foreground">
                     Get comprehensive insights about seating comfort, power outlets,
@@ -156,7 +155,7 @@ export default function Home() {
 
               <Card className="relative overflow-hidden group">
                 <CardContent className="p-6">
-                  <IconFallback name="MapPin" className="h-8 w-8 mb-4 text-primary" />
+                  <span className="block text-3xl mb-4">📍</span>
                   <h4 className="text-xl font-semibold mb-2">Location-Based</h4>
                   <p className="text-muted-foreground">
                     Find the perfect spot near you with our location-based search.
@@ -167,7 +166,7 @@ export default function Home() {
 
               <Card className="relative overflow-hidden group">
                 <CardContent className="p-6">
-                  <IconFallback name="Users" className="h-8 w-8 mb-4 text-primary" />
+                  <span className="block text-3xl mb-4">👥</span>
                   <h4 className="text-xl font-semibold mb-2">Community Driven</h4>
                   <p className="text-muted-foreground">
                     Join our community of reviewers. Share experiences and help
@@ -185,8 +184,8 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconFallback name="Search" className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  🔍
                 </div>
                 <h4 className="font-semibold mb-2">Find Places</h4>
                 <p className="text-sm text-muted-foreground">
@@ -195,8 +194,8 @@ export default function Home() {
               </div>
 
               <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconFallback name="Sofa" className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  🪑
                 </div>
                 <h4 className="font-semibold mb-2">Check Reviews</h4>
                 <p className="text-sm text-muted-foreground">
@@ -205,8 +204,8 @@ export default function Home() {
               </div>
 
               <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconFallback name="Star" className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  ⭐
                 </div>
                 <h4 className="font-semibold mb-2">Share Experience</h4>
                 <p className="text-sm text-muted-foreground">
@@ -215,8 +214,8 @@ export default function Home() {
               </div>
 
               <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconFallback name="Power" className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  🔌
                 </div>
                 <h4 className="font-semibold mb-2">Find Amenities</h4>
                 <p className="text-sm text-muted-foreground">
@@ -239,7 +238,7 @@ export default function Home() {
               onClick={() => setLocation('/search')}
               className="gap-2"
             >
-              Start Exploring <IconFallback name="ArrowRight" className="h-4 w-4" />
+              Start Exploring ➡️
             </Button>
           </div>
         </section>
