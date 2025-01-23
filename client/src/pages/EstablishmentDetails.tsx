@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { SeatReviewDialog } from '@/components/seat/SeatReviewDialog';
+import { Link } from 'wouter';
 
 interface Seat {
   id: number;
@@ -109,8 +110,9 @@ export default function EstablishmentDetails() {
           ) : (
             <Card className="p-4 bg-primary/5 border-primary/10">
               <p className="text-sm text-muted-foreground">
-                <Button variant="link" className="p-0 h-auto">Sign in</Button>
-                {" "}to add your seat review and help others find the perfect spot!
+                <Link href="/auth">
+                  <Button variant="link" className="p-0 h-auto">Sign in</Button>
+                </Link>{" "}to add your seat review and help others find the perfect spot!
               </p>
             </Card>
           )}
@@ -119,7 +121,7 @@ export default function EstablishmentDetails() {
         {seats.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No seat reviews yet. {user ? 'Be the first to add one!' : 'Sign in to add the first review!'}
+              No seat reviews yet. {user ? "Be the first to add one!" : "Sign in to add the first review!"}
             </CardContent>
           </Card>
         ) : (
@@ -142,12 +144,11 @@ export default function EstablishmentDetails() {
                 <CardContent>
                   <div className="space-y-2">
                     <p>
-                      <span className="font-medium">Comfort:</span>{" "}
-                      {seat.comfortRating}
+                      <span className="font-medium">Comfort:</span> {seat.comfortRating}
                     </p>
                     <p>
-                      <span className="font-medium">Capacity:</span>{" "}
-                      {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
+                      <span className="font-medium">Capacity:</span> {seat.capacity}{" "}
+                      {seat.capacity === 1 ? "person" : "people"}
                     </p>
                     <p>
                       <span className="font-medium">Power Outlet:</span>{" "}
@@ -155,8 +156,7 @@ export default function EstablishmentDetails() {
                     </p>
                     {seat.noiseLevel && (
                       <p>
-                        <span className="font-medium">Noise Level:</span>{" "}
-                        {seat.noiseLevel}
+                        <span className="font-medium">Noise Level:</span> {seat.noiseLevel}
                       </p>
                     )}
                     {seat.description && (

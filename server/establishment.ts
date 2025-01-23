@@ -188,12 +188,17 @@ export function setupEstablishmentRoutes(app: Express) {
             .returning();
         }
 
-        // Validate and insert the seat review
-        const result = insertSeatSchema.safeParse({
+        // Convert form data types before validation
+        const formData = {
           ...req.body,
+          capacity: parseInt(req.body.capacity),
+          hasPowerOutlet: req.body.hasPowerOutlet === 'true',
           userId: req.user.id,
           establishmentId: establishment.id
-        });
+        };
+
+        // Validate and insert the seat review
+        const result = insertSeatSchema.safeParse(formData);
 
         if (!result.success) {
           return res.status(400).json({
