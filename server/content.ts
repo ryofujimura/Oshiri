@@ -16,7 +16,23 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'));
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 5 // Maximum 5 files
+  }
+});
 
 export function setupContentRoutes(app: Express) {
   // Get all contents with their images
@@ -71,19 +87,35 @@ export function setupContentRoutes(app: Express) {
       // Upload images to Cloudinary and create image records
       if (files && files.length > 0) {
         const uploadPromises = files.map(async (file) => {
-          const cloudinaryResult = await uploadImage(file);
-          return {
-            imageUrl: cloudinaryResult.secure_url,
-            publicId: cloudinaryResult.public_id,
-            width: cloudinaryResult.width,
-            height: cloudinaryResult.height,
-            format: cloudinaryResult.format,
-            contentId: newContent.id,
-          };
+          try {
+            const cloudinaryResult = await uploadImage(file, {
+              folder: `content-images/${newContent.id}`,
+              transformation: [
+                { quality: 'auto:good' },
+                { fetch_format: 'auto' },
+                { width: 1200, height: 800, crop: 'limit' }
+              ]
+            });
+
+            return {
+              imageUrl: cloudinaryResult.secure_url,
+              publicId: cloudinaryResult.public_id,
+              width: cloudinaryResult.width,
+              height: cloudinaryResult.height,
+              format: cloudinaryResult.format,
+              contentId: newContent.id,
+            };
+          } catch (error) {
+            console.error(`Failed to upload image ${file.originalname}:`, error);
+            return null;
+          }
         });
 
-        const imageData = await Promise.all(uploadPromises);
-        await db.insert(images).values(imageData as InsertImage[]);
+        const imageData = (await Promise.all(uploadPromises)).filter((data): data is InsertImage => data !== null);
+
+        if (imageData.length > 0) {
+          await db.insert(images).values(imageData);
+        }
       }
 
       // Fetch the content with its images and categories
@@ -107,9 +139,12 @@ export function setupContentRoutes(app: Express) {
       });
 
       res.json(contentWithRelations);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating content:', error);
-      res.status(500).json({ message: "Failed to create content" });
+      res.status(500).json({ 
+        message: "Failed to create content",
+        error: error.message 
+      });
     }
   });
 
@@ -136,19 +171,35 @@ export function setupContentRoutes(app: Express) {
       // If new images are uploaded, add them
       if (files && files.length > 0) {
         const uploadPromises = files.map(async (file) => {
-          const cloudinaryResult = await uploadImage(file);
-          return {
-            imageUrl: cloudinaryResult.secure_url,
-            publicId: cloudinaryResult.public_id,
-            width: cloudinaryResult.width,
-            height: cloudinaryResult.height,
-            format: cloudinaryResult.format,
-            contentId,
-          };
+          try {
+            const cloudinaryResult = await uploadImage(file, {
+              folder: `content-images/${contentId}`,
+              transformation: [
+                { quality: 'auto:good' },
+                { fetch_format: 'auto' },
+                { width: 1200, height: 800, crop: 'limit' }
+              ]
+            });
+
+            return {
+              imageUrl: cloudinaryResult.secure_url,
+              publicId: cloudinaryResult.public_id,
+              width: cloudinaryResult.width,
+              height: cloudinaryResult.height,
+              format: cloudinaryResult.format,
+              contentId,
+            };
+          } catch (error) {
+            console.error(`Failed to upload image ${file.originalname}:`, error);
+            return null;
+          }
         });
 
-        const imageData = await Promise.all(uploadPromises);
-        await db.insert(images).values(imageData as InsertImage[]);
+        const imageData = (await Promise.all(uploadPromises)).filter((data): data is InsertImage => data !== null);
+
+        if (imageData.length > 0) {
+          await db.insert(images).values(imageData);
+        }
       }
 
       // Fetch updated content with relations
@@ -172,9 +223,12 @@ export function setupContentRoutes(app: Express) {
       });
 
       res.json(updatedContent);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating content:', error);
-      res.status(500).json({ message: "Failed to update content" });
+      res.status(500).json({ 
+        message: "Failed to update content",
+        error: error.message 
+      });
     }
   });
 
@@ -204,9 +258,12 @@ export function setupContentRoutes(app: Express) {
       await db.delete(contents).where(eq(contents.id, contentId));
 
       res.json({ message: "Content and associated images deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting content:', error);
-      res.status(500).json({ message: "Failed to delete content" });
+      res.status(500).json({ 
+        message: "Failed to delete content",
+        error: error.message 
+      });
     }
   });
 }

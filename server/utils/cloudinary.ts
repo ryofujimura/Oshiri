@@ -6,6 +6,7 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
 });
 
 interface CloudinaryUploadResult {
@@ -16,13 +17,15 @@ interface CloudinaryUploadResult {
   format: string;
 }
 
+interface CloudinaryUploadOptions {
+  folder?: string;
+  transformation?: any[];
+  background_removal?: boolean;
+}
+
 export async function uploadImage(
   file: Express.Multer.File,
-  options: {
-    folder?: string;
-    transformation?: any[];
-    background_removal?: boolean;
-  } = {}
+  options: CloudinaryUploadOptions = {}
 ): Promise<CloudinaryUploadResult> {
   try {
     // Verify Cloudinary configuration
@@ -30,15 +33,23 @@ export async function uploadImage(
       throw new Error('Missing Cloudinary configuration');
     }
 
-    // Create a temporary file path
-    const result = await cloudinary.uploader.upload(file.path, {
+    // Default transformations if none provided
+    const defaultTransformations = [
+      { quality: 'auto:good' },
+      { fetch_format: 'auto' },
+      { width: 1200, height: 800, crop: 'limit' }
+    ];
+
+    // Create upload options
+    const uploadOptions = {
       folder: options.folder || 'content-images',
-      transformation: options.transformation || [
-        { width: 1200, height: 800, crop: 'limit' }, // Limit max dimensions
-        { quality: 'auto:good' }, // Automatic quality optimization
-      ],
+      transformation: options.transformation || defaultTransformations,
+      resource_type: 'auto',
       background_removal: options.background_removal ? 'cloudinary_ai' : undefined,
-    });
+    };
+
+    // Upload the file
+    const result = await cloudinary.uploader.upload(file.path, uploadOptions);
 
     // Clean up temporary file
     try {
