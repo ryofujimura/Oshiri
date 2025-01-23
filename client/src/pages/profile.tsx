@@ -152,6 +152,40 @@ export default function ProfilePage() {
     });
   };
 
+  // Add handleAdminActionMutation definition
+  const handleAdminActionMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: number; action: 'approve' | 'reject' }) => {
+      const response = await fetch(`/api/seats/requests/${requestId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Edit request updated successfully',
+      });
+      // Invalidate both reviews and edit requests queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/edit-requests'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
