@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'; // Added import
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'wouter';
 import { YelpImageCarousel } from './YelpImageCarousel';
@@ -332,7 +333,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {establishments.map((establishment: Establishment) => (
-        <Link 
+        <Link
           key={establishment.id}
           href={`/establishments/${establishment.id}`}
           className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
@@ -349,8 +350,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
                     />
                   ) : (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                      <img 
-                        src="/placeholder-restaurant.png" 
+                      <img
+                        src="/placeholder-restaurant.png"
                         alt="No image available"
                         className="w-12 h-12 opacity-50"
                       />
