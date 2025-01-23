@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -39,15 +39,36 @@ export function ContentDialog({ content, open, onOpenChange }: ContentDialogProp
     defaultValues: content ? {
       title: content.title,
       description: content.description,
-    } : undefined
+      categories: content.categories?.map((c: any) => c.category.id.toString()) || []
+    } : {
+      title: '',
+      description: '',
+      categories: []
+    }
   });
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    content?.categories?.map((c: any) => c.category.id.toString()) || []
-  );
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Reset form and selected categories when content changes
+  useEffect(() => {
+    if (content) {
+      reset({
+        title: content.title,
+        description: content.description,
+      });
+      setSelectedCategories(content.categories?.map((c: any) => c.category.id.toString()) || []);
+    } else {
+      reset({
+        title: '',
+        description: '',
+      });
+      setSelectedCategories([]);
+    }
+  }, [content, reset]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['/api/categories'],
@@ -117,7 +138,7 @@ export function ContentDialog({ content, open, onOpenChange }: ContentDialogProp
             {content ? 'Edit Content' : 'Create Content'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="title">Title</Label>
