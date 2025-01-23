@@ -1,13 +1,14 @@
 import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Loader2, Star, MapPin, Phone } from 'lucide-react';
+import { Loader2, Star, MapPin, Phone, ThumbsUp, ThumbsDown, Chair, Users, Volume2, Power } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { SeatReviewDialog } from '@/components/seat/SeatReviewDialog';
 import { Link } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 
 interface Seat {
   id: number;
@@ -34,6 +35,8 @@ interface Seat {
 export default function EstablishmentDetails() {
   const { yelpId } = useParams();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: establishment, isLoading: isLoadingEstablishment } = useQuery({
     queryKey: [`/api/establishments/${yelpId}`],
@@ -44,6 +47,46 @@ export default function EstablishmentDetails() {
     queryKey: [`/api/establishments/${yelpId}/seats`],
     enabled: !!yelpId,
   });
+
+  const voteMutation = useMutation({
+    mutationFn: async ({ seatId, voteType }: { seatId: number; voteType: 'upvote' | 'downvote' }) => {
+      const response = await fetch(`/api/establishments/${yelpId}/seats/${seatId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voteType }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/establishments/${yelpId}/seats`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleVote = (seatId: number, voteType: 'upvote' | 'downvote') => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to vote on reviews',
+        variant: 'default',
+      });
+      return;
+    }
+
+    voteMutation.mutate({ seatId, voteType });
+  };
 
   if (isLoadingEstablishment || isLoadingSeats) {
     return (
@@ -121,7 +164,7 @@ export default function EstablishmentDetails() {
         {seats.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No seat reviews yet. {user ? "Be the first to add one!" : "Sign in to add the first review!"}
+              No seat reviews yet. {user ? "Be the first to add one! 🪑" : "Sign in to add the first review! 🪑"}
             </CardContent>
           </Card>
         ) : (
@@ -131,7 +174,10 @@ export default function EstablishmentDetails() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold">{seat.type}</h3>
+                      <div className="flex items-center gap-2">
+                        <Chair className="h-5 w-5" />
+                        <h3 className="font-semibold capitalize">{seat.type}</h3>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         Added by {seat.user.username}
                       </p>
@@ -142,26 +188,72 @@ export default function EstablishmentDetails() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {seat.images && seat.images.length > 0 && (
+                    <div className="mb-4 grid grid-cols-2 gap-2">
+                      {seat.images.map((image) => (
+                        <img
+                          key={image.id}
+                          src={image.imageUrl}
+                          alt="Seat"
+                          className="rounded-md w-full h-32 object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Comfort:</span> {seat.comfortRating}
-                    </p>
-                    <p>
-                      <span className="font-medium">Capacity:</span> {seat.capacity}{" "}
-                      {seat.capacity === 1 ? "person" : "people"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Power Outlet:</span>{" "}
-                      {seat.hasPowerOutlet ? "Available" : "Not available"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4" />
+                      <span className="font-medium">Comfort:</span>
+                      <span className="text-muted-foreground">{seat.comfortRating}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span className="font-medium">Capacity:</span>
+                      <span className="text-muted-foreground">
+                        {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Power className="h-4 w-4" />
+                      <span className="font-medium">Power Outlet:</span>
+                      <span className="text-muted-foreground">
+                        {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
+                      </span>
+                    </div>
                     {seat.noiseLevel && (
-                      <p>
-                        <span className="font-medium">Noise Level:</span> {seat.noiseLevel}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="h-4 w-4" />
+                        <span className="font-medium">Noise Level:</span>
+                        <span className="text-muted-foreground">{seat.noiseLevel}</span>
+                      </div>
                     )}
                     {seat.description && (
                       <p className="text-sm mt-2">{seat.description}</p>
                     )}
+
+                    {/* Voting Section */}
+                    <div className="flex items-center gap-4 pt-4 border-t mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={() => handleVote(seat.id, 'upvote')}
+                        disabled={voteMutation.isPending}
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>{seat.upvotes}</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={() => handleVote(seat.id, 'downvote')}
+                        disabled={voteMutation.isPending}
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                        <span>{seat.downvotes}</span>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

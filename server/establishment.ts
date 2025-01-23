@@ -253,4 +253,72 @@ export function setupEstablishmentRoutes(app: Express) {
       }
     }
   );
+
+  app.post("/api/establishments/:yelpId/seats/:seatId/vote", async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Must be logged in to vote" });
+      }
+
+      const { seatId } = req.params;
+      const { voteType } = req.body;
+
+      if (!['upvote', 'downvote'].includes(voteType)) {
+        return res.status(400).json({ message: "Invalid vote type" });
+      }
+
+      // Get the current seat
+      const [seat] = await db
+        .select()
+        .from(seats)
+        .where(eq(seats.id, parseInt(seatId)))
+        .limit(1);
+
+      if (!seat) {
+        return res.status(404).json({ message: "Seat not found" });
+      }
+
+      // Update the vote count
+      const [updatedSeat] = await db
+        .update(seats)
+        .set({
+          upvotes: voteType === 'upvote' ? seat.upvotes + 1 : seat.upvotes,
+          downvotes: voteType === 'downvote' ? seat.downvotes + 1 : seat.downvotes,
+        })
+        .where(eq(seats.id, parseInt(seatId)))
+        .returning();
+
+      res.json(updatedSeat);
+    } catch (error: any) {
+      console.error('Error voting on seat:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  // Add new route for recent reviews
+  app.get("/api/reviews/recent", async (_req: Request, res: Response) => {
+    try {
+      const recentSeats = await db.query.seats.findMany({
+        limit: 6,
+        orderBy: (seats, { desc }) => [desc(seats.createdAt)],
+        with: {
+          user: {
+            columns: {
+              username: true,
+            }
+          },
+          establishment: {
+            columns: {
+              name: true,
+              yelpId: true,
+            }
+          }
+        }
+      });
+
+      res.json(recentSeats);
+    } catch (error: any) {
+      console.error('Error fetching recent reviews:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
 }
