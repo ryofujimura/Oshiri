@@ -17,6 +17,23 @@ export function setupEstablishmentRoutes(app: Express) {
     try {
       const { latitude, longitude, location, radius, limit, term } = req.query;
 
+      // Validate that either location or coordinates are provided
+      if (!location && (!latitude || !longitude)) {
+        return res.status(400).json({ 
+          message: "Please provide either a location (city, address) or coordinates (latitude/longitude)" 
+        });
+      }
+
+      // If coordinates are provided, validate them
+      if (latitude && longitude) {
+        const lat = parseFloat(latitude as string);
+        const lng = parseFloat(longitude as string);
+
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          return res.status(400).json({ message: "Invalid coordinates provided" });
+        }
+      }
+
       const searchResults = await searchEstablishments({
         latitude: latitude ? parseFloat(latitude as string) : undefined,
         longitude: longitude ? parseFloat(longitude as string) : undefined,
@@ -31,8 +48,18 @@ export function setupEstablishmentRoutes(app: Express) {
       res.json(searchResults);
     } catch (error: any) {
       console.error('Error searching establishments:', error);
-      const errorMessage = error.response?.body ? JSON.parse(error.response.body).error?.description : error.message;
-      res.status(error.statusCode || 500).json({ message: errorMessage || 'Error searching establishments. Please try again.' });
+      // Parse Yelp API error message if available
+      const errorBody = error.response?.body ? JSON.parse(error.response.body) : null;
+      const errorMessage = errorBody?.error?.description || error.message;
+
+      // Return appropriate status code and message
+      if (errorBody?.error?.code === 'VALIDATION_ERROR') {
+        res.status(400).json({ message: errorMessage || 'Invalid search parameters provided.' });
+      } else {
+        res.status(error.statusCode || 500).json({ 
+          message: errorMessage || 'Error searching establishments. Please try again.' 
+        });
+      }
     }
   });
 
