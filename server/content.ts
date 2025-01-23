@@ -33,24 +33,38 @@ export function setupContentRoutes(app: Express) {
       const allContents = await db.query.contents.findMany({
         with: {
           images: true,
+          user: {
+            columns: {
+              id: true,
+              username: true,
+              role: true
+            }
+          },
+          categories: {
+            with: {
+              category: true
+            }
+          }
         },
         orderBy: (contents, { desc }) => [desc(contents.createdAt)],
       });
       res.json(allContents);
     } catch (error) {
+      console.error('Error fetching contents:', error);
       res.status(500).json({ message: "Failed to fetch contents" });
     }
   });
 
   // Create new content with multiple images
   app.post("/api/contents", upload.array('images', 5), async (req: Request, res: Response) => {
-    if (!req.user) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     try {
-      const { title, description } = req.body;
+      const { title, description, categories } = req.body;
       const files = req.files as Express.Multer.File[];
+      const categoryIds = categories ? JSON.parse(categories) : [];
 
       // First create the content
       const [newContent] = await db
@@ -72,23 +86,36 @@ export function setupContentRoutes(app: Express) {
         await db.insert(images).values(imageValues as InsertImage[]);
       }
 
-      // Fetch the content with its images
-      const contentWithImages = await db.query.contents.findFirst({
+      // Fetch the content with its images and categories
+      const contentWithRelations = await db.query.contents.findFirst({
         where: eq(contents.id, newContent.id),
         with: {
           images: true,
+          categories: {
+            with: {
+              category: true
+            }
+          },
+          user: {
+            columns: {
+              id: true,
+              username: true,
+              role: true
+            }
+          }
         },
       });
 
-      res.json(contentWithImages);
+      res.json(contentWithRelations);
     } catch (error) {
+      console.error('Error creating content:', error);
       res.status(500).json({ message: "Failed to create content" });
     }
   });
 
   // Vote on content
   app.post("/api/contents/:id/vote", async (req: Request, res: Response) => {
-    if (!req.user) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
@@ -113,13 +140,14 @@ export function setupContentRoutes(app: Express) {
 
       res.json(updatedContent);
     } catch (error) {
+      console.error('Error updating vote:', error);
       res.status(500).json({ message: "Failed to update vote" });
     }
   });
 
-  // Delete content
+  // Delete content (admin only)
   app.delete("/api/contents/:id", async (req: Request, res: Response) => {
-    if (!req.user?.role !== 'admin') {
+    if (!req.user?.id || req.user.role !== 'admin') {
       return res.status(401).json({ message: "Not authorized" });
     }
 
@@ -145,6 +173,7 @@ export function setupContentRoutes(app: Express) {
 
       res.json({ message: "Content and associated images deleted successfully" });
     } catch (error) {
+      console.error('Error deleting content:', error);
       res.status(500).json({ message: "Failed to delete content" });
     }
   });
