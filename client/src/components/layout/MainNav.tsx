@@ -78,8 +78,9 @@ export function MainNav() {
             )} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <ScrollArea className="h-full py-6">
+        <SheetContent side="left" className="p-0">
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
+          <ScrollArea className="h-full py-6 relative bg-background">
             <div className="space-y-1 px-2">
               {routes.map((route) => (
                 <Link key={route.href} href={route.href}>

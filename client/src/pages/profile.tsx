@@ -152,7 +152,6 @@ export default function ProfilePage() {
     });
   };
 
-  // JSX remains the same until the edit dialog
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -247,34 +246,24 @@ export default function ProfilePage() {
                             Posted on {format(new Date(review.createdAt), 'MMM d, yyyy')}
                           </CardDescription>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedReview(review);
-                              setIsEditDialogOpen(true);
-                              form.reset({
-                                type: review.type,
-                                capacity: review.capacity,
-                                comfortRating: review.comfortRating,
-                                hasPowerOutlet: review.hasPowerOutlet,
-                                noiseLevel: review.noiseLevel,
-                                description: review.description,
-                              });
-                            }}
-                          >
-                            <PenSquare className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => handleDelete(review.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedReview(review);
+                            setIsEditDialogOpen(true);
+                            form.reset({
+                              type: review.type,
+                              capacity: review.capacity,
+                              comfortRating: review.comfortRating,
+                              hasPowerOutlet: review.hasPowerOutlet,
+                              noiseLevel: review.noiseLevel,
+                              description: review.description,
+                            });
+                          }}
+                        >
+                          <PenSquare className="h-4 w-4" />
+                        </Button>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -520,7 +509,19 @@ export default function ProfilePage() {
                   )}
                 />
 
-                <DialogFooter>
+                <DialogFooter className="flex justify-between">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      if (selectedReview) {
+                        handleDelete(('seat' in selectedReview) ? selectedReview.seat.id : selectedReview.id);
+                        setIsEditDialogOpen(false);
+                      }
+                    }}
+                  >
+                    Delete Review
+                  </Button>
                   <Button type="submit">
                     {editReviewMutation.isPending ? (
                       <>
