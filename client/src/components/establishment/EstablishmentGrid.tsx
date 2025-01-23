@@ -29,7 +29,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!searchParams && "geolocation" in navigator) {
+    // Get location if:
+    // 1. No search params provided (showing nearby)
+    // 2. Search term provided but no location (use current location)
+    if ((!searchParams || (searchParams.term && !searchParams.location)) && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCoordinates({
@@ -40,7 +43,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
         },
         (error) => {
           console.error('Geolocation error:', error);
-          setLocationError("Please enable location services to see nearby establishments");
+          setLocationError("Please enable location services or provide a location");
         }
       );
     }
@@ -48,16 +51,24 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
   const { data, isLoading, error } = useQuery({
     queryKey: searchParams 
-      ? ['/api/establishments/search', searchParams.term, searchParams.location]
+      ? ['/api/establishments/search', searchParams.term, searchParams.location || coordinates?.latitude]
       : ['/api/establishments/nearby', coordinates?.latitude, coordinates?.longitude],
     queryFn: async () => {
       let url = '/api/establishments/';
 
-      if (searchParams) {
-        url += `search?${new URLSearchParams({
-          ...(searchParams.term && { term: searchParams.term }),
-          ...(searchParams.location && { location: searchParams.location })
-        })}`;
+      if (searchParams?.term) {
+        const params = new URLSearchParams({
+          term: searchParams.term,
+        });
+
+        if (searchParams.location) {
+          params.append('location', searchParams.location);
+        } else if (coordinates) {
+          params.append('latitude', coordinates.latitude.toString());
+          params.append('longitude', coordinates.longitude.toString());
+        }
+
+        url += `search?${params}`;
       } else if (coordinates) {
         url += `nearby?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}`;
       } else {
@@ -68,7 +79,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       if (!response.ok) throw new Error('Failed to fetch establishments');
       return response.json();
     },
-    enabled: !!(searchParams || coordinates),
+    enabled: !!(searchParams?.term || coordinates),
   });
 
   if (error) {

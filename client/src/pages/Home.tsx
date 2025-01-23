@@ -1,11 +1,11 @@
 import { AuthButton } from '@/components/auth/AuthButton';
 import { EstablishmentGrid } from '@/components/establishment/EstablishmentGrid';
+import { MainNav } from '@/components/layout/MainNav';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { Search, MapPin } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 
 export default function Home() {
   const { user } = useAuth();
@@ -15,15 +15,20 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSearching(true);
+    if (searchTerm.trim()) {
+      setIsSearching(true);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Oshiri</h1>
-          <div className="flex items-center gap-4">
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <MainNav />
+            </div>
             <AuthButton />
           </div>
         </div>
@@ -43,7 +48,7 @@ export default function Home() {
               </p>
 
               {/* Search Form */}
-              <form onSubmit={handleSearch} className="flex gap-4 max-w-2xl mx-auto">
+              <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
@@ -56,13 +61,13 @@ export default function Home() {
                 <div className="relative flex-1">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Location"
+                    placeholder="Location (optional)"
                     className="pl-10"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
-                <Button type="submit">Search</Button>
+                <Button type="submit" className="md:w-auto">Search</Button>
               </form>
             </div>
           </div>
@@ -79,7 +84,14 @@ export default function Home() {
           <h3 className="text-2xl font-semibold mb-6">
             {isSearching ? 'Search Results' : 'Nearby Establishments'}
           </h3>
-          <EstablishmentGrid searchParams={isSearching ? { term: searchTerm, location } : undefined} />
+          <EstablishmentGrid 
+            searchParams={
+              isSearching ? { 
+                term: searchTerm,
+                location: location || undefined 
+              } : undefined
+            } 
+          />
         </section>
       </main>
     </div>
