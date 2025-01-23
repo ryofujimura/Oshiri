@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { SeatReviewDialog } from '@/components/seat/SeatReviewDialog';
+import { SeatImageCarousel } from '@/components/seat/SeatImageCarousel';
 import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 
@@ -87,6 +88,16 @@ export default function EstablishmentDetails() {
     voteMutation.mutate({ seatId, voteType });
   };
 
+  // Sort seats by relevance (upvotes ratio)
+  const sortedSeats = [...seats].sort((a, b) => {
+    const getRelevanceScore = (seat: Seat) => {
+      const totalVotes = seat.upvotes + seat.downvotes;
+      if (totalVotes === 0) return 0;
+      return (seat.upvotes / totalVotes) * Math.log10(totalVotes + 1);
+    };
+    return getRelevanceScore(b) - getRelevanceScore(a);
+  });
+
   if (isLoadingEstablishment || isLoadingSeats) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -160,7 +171,7 @@ export default function EstablishmentDetails() {
           )}
         </div>
 
-        {seats.length === 0 ? (
+        {sortedSeats.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               No seat reviews yet. {user ? "Be the first to add one! 🪑" : "Sign in to add the first review! 🪑"}
@@ -168,7 +179,7 @@ export default function EstablishmentDetails() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {seats.map((seat: Seat) => (
+            {sortedSeats.map((seat: Seat) => (
               <Card key={seat.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -188,37 +199,36 @@ export default function EstablishmentDetails() {
                 </CardHeader>
                 <CardContent>
                   {seat.images && seat.images.length > 0 && (
-                    <div className="mb-4 grid grid-cols-2 gap-2">
-                      {seat.images.map((image) => (
-                        <img
-                          key={image.id}
-                          src={image.imageUrl}
-                          alt="Seat"
-                          className="rounded-md w-full h-32 object-cover"
-                        />
-                      ))}
+                    <div className="mb-4">
+                      <SeatImageCarousel images={seat.images} />
                     </div>
                   )}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      ⭐
-                      <span className="font-medium">Comfort:</span>
-                      <span className="text-muted-foreground">{seat.comfortRating}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      👥
-                      <span className="font-medium">Capacity:</span>
-                      <span className="text-muted-foreground">
-                        {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      🔌
-                      <span className="font-medium">Power Outlet:</span>
-                      <span className="text-muted-foreground">
-                        {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
-                      </span>
-                    </div>
+                    {seat.capacity && (
+                      <div className="flex items-center gap-2">
+                        👥
+                        <span className="font-medium">Capacity:</span>
+                        <span className="text-muted-foreground">
+                          {seat.capacity} {seat.capacity === 1 ? "person" : "people"}
+                        </span>
+                      </div>
+                    )}
+                    {seat.comfortRating && (
+                      <div className="flex items-center gap-2">
+                        ⭐
+                        <span className="font-medium">Comfort:</span>
+                        <span className="text-muted-foreground">{seat.comfortRating}</span>
+                      </div>
+                    )}
+                    {seat.hasPowerOutlet && (
+                      <div className="flex items-center gap-2">
+                        🔌
+                        <span className="font-medium">Power Outlet:</span>
+                        <span className="text-muted-foreground">
+                          {seat.hasPowerOutlet ? "✅ Available" : "❌ Not available"}
+                        </span>
+                      </div>
+                    )}
                     {seat.noiseLevel && (
                       <div className="flex items-center gap-2">
                         🔊
