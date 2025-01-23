@@ -9,14 +9,17 @@ export function setupEstablishmentRoutes(app: Express) {
   // Search establishments (uses Yelp API)
   app.get("/api/establishments/search", async (req: Request, res: Response) => {
     try {
-      const { latitude, longitude, location, radius, limit } = req.query;
+      const { latitude, longitude, location, radius, limit, term } = req.query;
 
       const searchResults = await searchEstablishments({
         latitude: latitude ? parseFloat(latitude as string) : undefined,
         longitude: longitude ? parseFloat(longitude as string) : undefined,
         location: location as string | undefined,
         radius: radius ? parseInt(radius as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined
+        limit: limit ? parseInt(limit as string) : undefined,
+        term: term as string | undefined,
+        categories: 'restaurants,cafes',
+        sort_by: location ? 'best_match' : 'distance'
       });
 
       res.json(searchResults);
@@ -59,11 +62,11 @@ export function setupEstablishmentRoutes(app: Express) {
             city: yelpData.location.city,
             state: yelpData.location.state,
             zipCode: yelpData.location.zip_code,
-            latitude: parseFloat(yelpData.coordinates.latitude.toString()),
-            longitude: parseFloat(yelpData.coordinates.longitude.toString()),
-            yelpRating: parseFloat(yelpData.rating.toString()),
+            latitude: yelpData.coordinates.latitude,
+            longitude: yelpData.coordinates.longitude,
+            yelpRating: parseFloat(yelpData.rating),
             phone: yelpData.phone
-          })
+          } as InsertEstablishment)
           .returning();
 
         res.json({
@@ -80,7 +83,7 @@ export function setupEstablishmentRoutes(app: Express) {
   // Get nearby establishments
   app.get("/api/establishments/nearby", async (req: Request, res: Response) => {
     try {
-      const { latitude, longitude, radius } = req.query;
+      const { latitude, longitude, radius, term } = req.query;
 
       if (!latitude || !longitude) {
         return res.status(400).json({ message: "Latitude and longitude are required" });
@@ -91,7 +94,8 @@ export function setupEstablishmentRoutes(app: Express) {
         longitude: parseFloat(longitude as string),
         radius: radius ? parseInt(radius as string) : 1000,
         categories: 'restaurants,cafes',
-        sort_by: 'distance'
+        sort_by: 'distance',
+        term: term as string | undefined
       });
 
       res.json(searchResults);
@@ -101,17 +105,32 @@ export function setupEstablishmentRoutes(app: Express) {
     }
   });
 
-  // Route for managing seats at a specific establishment
+  // Get seats for a specific establishment
   app.get("/api/establishments/:yelpId/seats", async (req: Request, res: Response) => {
     try {
       const { yelpId } = req.params;
-      const establishmentSeats = await db.select().from(seats).where(eq(seats.establishmentId, yelpId)); // Assuming seats table has establishmentId
+
+      // First get the establishment ID from our database
+      const [establishment] = await db
+        .select()
+        .from(establishments)
+        .where(eq(establishments.yelpId, yelpId))
+        .limit(1);
+
+      if (!establishment) {
+        return res.status(404).json({ message: "Establishment not found" });
+      }
+
+      // Now get the seats for this establishment
+      const establishmentSeats = await db
+        .select()
+        .from(seats)
+        .where(eq(seats.establishmentId, establishment.id));
+
       res.json(establishmentSeats);
     } catch (error: any) {
       console.error('Error getting establishment seats:', error);
       res.status(500).json({ message: error.message });
     }
   });
-
-
 }

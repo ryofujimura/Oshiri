@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Loader2, Star, MapPin, Phone } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { MainNav } from '@/components/layout/MainNav';
+import { AuthButton } from '@/components/auth/AuthButton';
 
 interface Seat {
   id: number;
@@ -59,8 +61,21 @@ export default function EstablishmentDetails() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Section */}
-      <header className="bg-primary/5 py-12">
+      {/* Header with Navigation */}
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <h1 className="text-2xl font-bold">Oshiri</h1>
+              <MainNav />
+            </div>
+            <AuthButton />
+          </div>
+        </div>
+      </header>
+
+      {/* Establishment Info */}
+      <section className="bg-primary/5 py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl font-bold mb-4">{establishment.name}</h1>
           <div className="flex flex-wrap gap-4 text-muted-foreground">
@@ -82,23 +97,30 @@ export default function EstablishmentDetails() {
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Seats Section */}
       <main className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-semibold">Seats & Reviews</h2>
-          {user && (
+          {user ? (
             <Button>
               Add Seat Review
             </Button>
+          ) : (
+            <Card className="p-4 bg-primary/5 border-primary/10">
+              <p className="text-sm text-muted-foreground">
+                <Button variant="link" className="p-0 h-auto">Sign in</Button>
+                {" "}to add your seat review and help others find the perfect spot!
+              </p>
+            </Card>
           )}
         </div>
 
         {seats.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No seat reviews yet. Be the first to add one!
+              No seat reviews yet. {user ? 'Be the first to add one!' : 'Sign in to add the first review!'}
             </CardContent>
           </Card>
         ) : (
