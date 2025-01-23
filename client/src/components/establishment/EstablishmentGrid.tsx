@@ -343,10 +343,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
               <div className="grid grid-cols-5 h-full">
                 <div className="col-span-2 relative h-full min-h-[200px]">
                   {establishment.photos && establishment.photos.length > 0 ? (
-                    <YelpImageCarousel
-                      photos={establishment.photos}
-                      aspectRatio={3/4}
-                      className="absolute inset-0 w-full h-full object-cover"
+                    <img
+                      src={establishment.photos[0]}
+                      alt={`${establishment.name}`}
+                      className="absolute inset-0 w-full h-full object-cover rounded-l-lg"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
