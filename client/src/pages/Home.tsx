@@ -6,6 +6,8 @@ import { useLocation, Link } from 'wouter';
 import { Search, MapPin, Star, Sofa, Users, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { FloatingActionMenu } from "@/components/ui/floating-action-menu";
+import { Plus, MapPin as MapPinIcon, Star as StarIcon, Search as SearchIcon } from "lucide-react";
 
 interface Review {
   id: number;
@@ -40,6 +42,24 @@ export default function Home() {
   const getDisplayedReviews = (reviews: Review[] = []) => {
     return reviews.slice(0, 6);
   };
+
+  const actionMenuItems = [
+    {
+      icon: <SearchIcon className="h-5 w-5" />,
+      label: "Search Places",
+      onClick: () => setLocation("/search")
+    },
+    {
+      icon: <MapPinIcon className="h-5 w-5" />,
+      label: "Near Me",
+      onClick: () => setLocation("/near-me")
+    },
+    {
+      icon: <StarIcon className="h-5 w-5" />,
+      label: "Top Rated",
+      onClick: () => setLocation("/top-rated")
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -286,6 +306,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+      <FloatingActionMenu items={actionMenuItems} />
     </div>
   );
 }
