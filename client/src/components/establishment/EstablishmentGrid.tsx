@@ -67,23 +67,16 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
 
     setLocationError(type);
     setErrorMessage(message);
+    setIsLocating(false); // Always reset isLocating on error
 
-    // Show error toast
-    toast({
-      title: "Location Error",
-      description: message,
-      variant: type === 'timeout' ? 'default' : 'destructive',
-    });
-
-    // Retry for timeout or unavailable errors
-    if ((type === 'timeout' || type === 'unavailable') && retryCount < MAX_RETRIES) {
+    // Only retry for timeout errors
+    if (type === 'timeout' && retryCount < MAX_RETRIES) {
       setTimeout(() => {
         setRetryCount(prev => prev + 1);
         requestLocation();
       }, RETRY_DELAY);
     } else {
       setCoordinates(null);
-      setIsLocating(false);
     }
   };
 
@@ -93,11 +86,11 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     if (cachedLocation) {
       try {
         const { latitude, longitude, timestamp } = JSON.parse(cachedLocation);
-        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        const oneHour = 60 * 60 * 1000;
 
-        // Only use cached location if it's less than 1 hour old
         if (Date.now() - timestamp < oneHour) {
           setCoordinates({ latitude, longitude });
+          setIsLocating(false); // Reset isLocating when using cached location
         }
       } catch (error) {
         console.error('Error parsing cached location:', error);
@@ -110,6 +103,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     if (!("geolocation" in navigator)) {
       setLocationError('unavailable');
       setErrorMessage("Geolocation is not supported by your browser");
+      setIsLocating(false);
       return;
     }
 
@@ -117,14 +111,23 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     setLocationError(null);
     setErrorMessage(null);
 
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setIsLocating(false);
+      setLocationError('timeout');
+      setErrorMessage("Location detection took too long. Showing general results.");
+    }, 10000); // 10 second timeout
+
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           timeout: 10000,
           enableHighAccuracy: true,
-          maximumAge: 60000, // Allow 1-minute old cached positions
+          maximumAge: 60000,
         });
       });
+
+      clearTimeout(timeoutId); // Clear timeout on success
 
       const newCoordinates = {
         latitude: position.coords.latitude,
@@ -135,50 +138,53 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
       setLocationError(null);
       setErrorMessage(null);
       setRetryCount(0);
+      setIsLocating(false); // Reset isLocating on success
 
-      // Cache the location with timestamp
       localStorage.setItem('lastKnownLocation', JSON.stringify({
         ...newCoordinates,
         timestamp: Date.now()
       }));
     } catch (error) {
+      clearTimeout(timeoutId); // Clear timeout on error
       handleLocationError(error as GeolocationPositionError);
-    } finally {
-      if (retryCount >= MAX_RETRIES) {
-        setIsLocating(false);
-      }
     }
   };
 
-  // Check permission and request location on mount
+  // Check permission and request location on mount, but only if we don't have search params
   useEffect(() => {
-    const checkPermissionAndLocation = async () => {
-      if ("permissions" in navigator) {
-        try {
-          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-          setPermissionState(permissionStatus.state);
-
-          // If permission is granted, get location immediately
-          if (permissionStatus.state === 'granted') {
-            requestLocation();
-          }
-
-          // Listen for permission changes
-          permissionStatus.onchange = () => {
+    if (!searchParams?.term && !searchParams?.location) {
+      const checkPermissionAndLocation = async () => {
+        if ("permissions" in navigator) {
+          try {
+            const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
             setPermissionState(permissionStatus.state);
+
             if (permissionStatus.state === 'granted') {
               requestLocation();
+            } else {
+              setIsLocating(false); // Reset if permission not granted
             }
-          };
-        } catch (error) {
-          console.error('Permission check error:', error);
-          setLocationError('permission');
-        }
-      }
-    };
 
-    checkPermissionAndLocation();
-  }, []);
+            permissionStatus.onchange = () => {
+              setPermissionState(permissionStatus.state);
+              if (permissionStatus.state === 'granted') {
+                requestLocation();
+              }
+            };
+          } catch (error) {
+            console.error('Permission check error:', error);
+            setLocationError('permission');
+            setIsLocating(false);
+          }
+        }
+      };
+
+      checkPermissionAndLocation();
+    } else {
+      // If we have search params, don't try to get location
+      setIsLocating(false);
+    }
+  }, [searchParams]);
 
   // Query for nearby establishments (default view)
   const nearbyQuery = useQuery({
