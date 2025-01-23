@@ -136,7 +136,7 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
       <DialogTrigger asChild>
         {trigger || <Button>Add Seat Review</Button>}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Seat Review</DialogTitle>
           <DialogDescription>
@@ -145,7 +145,7 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 overflow-y-auto pb-20">
             <FormField
               control={form.control}
               name="type"
@@ -312,23 +312,26 @@ export function SeatReviewDialog({ establishmentId, trigger }: Props) {
                 Upload up to 5 images of the seating area
               </p>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={addReviewMutation.isPending}
-            >
-              {addReviewMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Submit Review'
-              )}
-            </Button>
           </form>
         </Form>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t">
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={addReviewMutation.isPending}
+            onClick={form.handleSubmit(onSubmit)}
+          >
+            {addReviewMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Review'
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
