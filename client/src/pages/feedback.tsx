@@ -125,7 +125,7 @@ export default function FeedbackPage() {
               <div className="flex items-center gap-6">
                 <Link href="/">
                   <a className="text-2xl font-bold hover:text-primary transition-colors">
-                    Oshiri
+                    Osiri
                   </a>
                 </Link>
                 <MainNav />
