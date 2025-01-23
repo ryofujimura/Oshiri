@@ -9,7 +9,6 @@ import fs from "fs";
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
-    // Create uploads directory if it doesn't exist
     const uploadDir = 'uploads';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
@@ -110,6 +109,63 @@ export function setupContentRoutes(app: Express) {
     } catch (error) {
       console.error('Error creating content:', error);
       res.status(500).json({ message: "Failed to create content" });
+    }
+  });
+
+  // Update content
+  app.put("/api/contents/:id", upload.array('images', 5), async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const contentId = parseInt(req.params.id);
+    const { title, description } = req.body;
+    const files = req.files as Express.Multer.File[];
+
+    try {
+      // First update the content
+      await db
+        .update(contents)
+        .set({
+          title,
+          description,
+        })
+        .where(eq(contents.id, contentId));
+
+      // If new images are uploaded, add them
+      if (files && files.length > 0) {
+        const imageValues = files.map(file => ({
+          imageUrl: `/uploads/${file.filename}`,
+          contentId,
+        }));
+
+        await db.insert(images).values(imageValues as InsertImage[]);
+      }
+
+      // Fetch updated content with relations
+      const updatedContent = await db.query.contents.findFirst({
+        where: eq(contents.id, contentId),
+        with: {
+          images: true,
+          categories: {
+            with: {
+              category: true
+            }
+          },
+          user: {
+            columns: {
+              id: true,
+              username: true,
+              role: true
+            }
+          }
+        },
+      });
+
+      res.json(updatedContent);
+    } catch (error) {
+      console.error('Error updating content:', error);
+      res.status(500).json({ message: "Failed to update content" });
     }
   });
 
