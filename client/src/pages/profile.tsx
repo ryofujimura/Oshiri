@@ -288,7 +288,7 @@ export default function ProfilePage() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-6">
                 <Link href="/">
-                  <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
                     Osiri
                   </a>
                 </Link>
@@ -299,9 +299,9 @@ export default function ProfilePage() {
           </div>
         </header>
         <div className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="bg-card">
             <CardContent className="pt-6">
-              <p className="text-center">Please log in to view your profile.</p>
+              <p className="text-center text-muted-foreground">Please log in to view your profile.</p>
             </CardContent>
           </Card>
         </div>
@@ -316,8 +316,8 @@ export default function ProfilePage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
-                  Oshiri
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
+                  Osiri
                 </a>
               </Link>
               <MainNav />
@@ -328,18 +328,18 @@ export default function ProfilePage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <Card className="mb-8">
+        <Card className="mb-8 bg-card">
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">Profile</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Welcome back, {user.username}!
               {user.role === 'admin' && ' (Admin)'}
             </CardDescription>
           </CardHeader>
         </Card>
 
-        <Tabs defaultValue="settings">
-          <TabsList>
+        <Tabs defaultValue="settings" className="space-y-4">
+          <TabsList className="bg-card">
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="reviews">
               {user.role === 'admin' ? 'All Reviews' : 'My Reviews'}
@@ -350,10 +350,10 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="settings">
-            <Card>
+            <Card className="bg-card">
               <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-foreground">Profile Settings</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Update your username or change your password
                 </CardDescription>
               </CardHeader>
@@ -423,7 +423,7 @@ export default function ProfilePage() {
                     <Button
                       type="submit"
                       disabled={updateProfileMutation.isPending}
-                      className="w-full"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       {updateProfileMutation.isPending ? (
                         <>
@@ -444,10 +444,10 @@ export default function ProfilePage() {
             <div className="grid gap-4">
               {isLoadingReviews ? (
                 <div className="flex justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : !reviews.length ? (
-                <Card>
+                <Card className="bg-card">
                   <CardContent className="pt-6">
                     <p className="text-center text-muted-foreground">
                       No reviews found.
@@ -456,12 +456,12 @@ export default function ProfilePage() {
                 </Card>
               ) : (
                 reviews.map((review: Seat) => (
-                  <Card key={review.id}>
+                  <Card key={review.id} className="bg-card">
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle>{review.establishment.name}</CardTitle>
-                          <CardDescription>
+                          <CardTitle className="text-foreground">{review.establishment.name}</CardTitle>
+                          <CardDescription className="text-muted-foreground">
                             {user.role === 'admin' && `By ${review.user.username} • `}
                             Posted on {format(new Date(review.createdAt), 'MMM d, yyyy')}
                           </CardDescription>
@@ -498,6 +498,7 @@ export default function ProfilePage() {
                                 description: review.description,
                               });
                             }}
+                            className="hover:bg-primary/10"
                           >
                             <PenSquare className="h-4 w-4" />
                           </Button>
@@ -505,7 +506,7 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-foreground">
                         <p><strong>Seat Type:</strong> {review.type}</p>
                         <p><strong>Comfort:</strong> {review.comfortRating}</p>
                         <p><strong>Power Outlet:</strong> {review.hasPowerOutlet ? 'Yes' : 'No'}</p>
@@ -524,10 +525,10 @@ export default function ProfilePage() {
               <div className="grid gap-4">
                 {isLoadingRequests ? (
                   <div className="flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 ) : !editRequests.length ? (
-                  <Card>
+                  <Card className="bg-card">
                     <CardContent className="pt-6">
                       <p className="text-center text-muted-foreground">
                         No pending edit requests.
@@ -536,14 +537,14 @@ export default function ProfilePage() {
                   </Card>
                 ) : (
                   editRequests.map((request: EditRequest) => (
-                    <Card key={request.id}>
+                    <Card key={request.id} className="bg-card">
                       <CardHeader>
                         <div className="flex justify-between items-start">
                           <div>
-                            <CardTitle>
+                            <CardTitle className="text-foreground">
                               {request.requestType === 'edit' ? 'Edit' : 'Delete'} Request
                             </CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-muted-foreground">
                               By {request.user.username} for review at {request.seat.establishment.name}
                               <br />
                               Submitted on {format(new Date(request.createdAt), 'MMM d, yyyy')}
@@ -558,6 +559,7 @@ export default function ProfilePage() {
                                   setSelectedReview(request);
                                   setIsPreviewDialogOpen(true);
                                 }}
+                                className="hover:bg-primary/10"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -568,6 +570,7 @@ export default function ProfilePage() {
                                 requestId: request.id,
                                 action: 'approve'
                               })}
+                              className="bg-primary text-primary-foreground hover:bg-primary/90"
                             >
                               Approve
                             </Button>
@@ -585,7 +588,7 @@ export default function ProfilePage() {
                       </CardHeader>
                       {request.requestType === 'edit' && (
                         <CardContent>
-                          <div className="space-y-2">
+                          <div className="space-y-2 text-foreground">
                             <p><strong>Changes requested:</strong></p>
                             {request.type && (
                               <p><strong>Type:</strong> {request.type}</p>

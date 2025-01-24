@@ -153,7 +153,7 @@ export default function FeedbackPage() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-6">
                 <Link href="/">
-                  <a className="text-2xl font-bold hover:text-primary transition-colors">
+                  <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
                     Osiri
                   </a>
                 </Link>
@@ -164,9 +164,9 @@ export default function FeedbackPage() {
           </div>
         </header>
         <div className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="bg-card">
             <CardContent className="pt-6">
-              <p className="text-center">Please log in to submit feedback.</p>
+              <p className="text-center text-muted-foreground">Please log in to submit feedback.</p>
             </CardContent>
           </Card>
         </div>
@@ -181,7 +181,7 @@ export default function FeedbackPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
                   Osiri
                 </a>
               </Link>
@@ -197,7 +197,7 @@ export default function FeedbackPage() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Submit Feedback</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-muted-foreground">
                 Share your thoughts, suggestions, or report issues
               </CardDescription>
             </CardHeader>
@@ -262,13 +262,13 @@ export default function FeedbackPage() {
           </Card>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Community Feedback</h2>
+            <h2 className="text-2xl font-bold text-foreground">Community Feedback</h2>
             {feedbackItems.map((feedback: Feedback) => (
-              <Card key={feedback.id}>
+              <Card key={feedback.id} className="bg-card">
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="font-medium text-lg">{feedback.content}</p>
+                      <p className="font-medium text-lg text-foreground">{feedback.content}</p>
                       <p className="text-sm text-muted-foreground">
                         By {feedback.user.username} • {new Date(feedback.createdAt).toLocaleDateString()}
                       </p>
@@ -281,6 +281,7 @@ export default function FeedbackPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => voteMutation.mutate({ feedbackId: feedback.id, voteType: 'up' })}
+                        className="hover:bg-primary/10"
                       >
                         <ThumbsUp className="h-4 w-4 mr-1" />
                         {feedback.upvotes}
@@ -289,6 +290,7 @@ export default function FeedbackPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => voteMutation.mutate({ feedbackId: feedback.id, voteType: 'down' })}
+                        className="hover:bg-primary/10"
                       >
                         <ThumbsDown className="h-4 w-4 mr-1" />
                         {feedback.downvotes}
@@ -296,16 +298,16 @@ export default function FeedbackPage() {
                     </div>
                   </div>
                   {user.role === 'admin' ? (
-                    <div className="mt-4 p-4 bg-secondary/20 rounded-lg">
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">Current Status: {feedback.status}</p>
+                        <p className="text-sm font-medium text-foreground">Current Status: {feedback.status}</p>
                         <Select
                           defaultValue={feedback.status}
-                          onValueChange={(value) => 
+                          onValueChange={(value) =>
                             updateStatusMutation.mutate({ id: feedback.id, status: value })
                           }
                         >
-                          <SelectTrigger className="w-[180px]">
+                          <SelectTrigger className="w-[180px] bg-background">
                             <SelectValue placeholder="Update status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -318,8 +320,8 @@ export default function FeedbackPage() {
                       </div>
                     </div>
                   ) : feedback.status !== 'pending' && (
-                    <div className="mt-4 p-4 bg-secondary/20 rounded-lg">
-                      <p className="text-sm font-medium">Status: {feedback.status}</p>
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <p className="text-sm font-medium text-foreground">Status: {feedback.status}</p>
                     </div>
                   )}
                 </CardContent>

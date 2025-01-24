@@ -70,9 +70,9 @@ export function WebsiteFeedbackDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-background">
         <DialogHeader>
-          <DialogTitle>Website Feedback</DialogTitle>
+          <DialogTitle className="text-foreground">Website Feedback</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -81,10 +81,10 @@ export function WebsiteFeedbackDialog({ open, onOpenChange }: Props) {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category (Optional)</FormLabel>
+                  <FormLabel className="text-foreground">Category (Optional)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-background border-input">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -95,7 +95,7 @@ export function WebsiteFeedbackDialog({ open, onOpenChange }: Props) {
                       <SelectItem value="improvement">Improvement Suggestion</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <FormMessage className="text-destructive" />
                 </FormItem>
               )}
             />
@@ -105,21 +105,25 @@ export function WebsiteFeedbackDialog({ open, onOpenChange }: Props) {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Your Feedback</FormLabel>
+                  <FormLabel className="text-foreground">Your Feedback</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Share your thoughts, suggestions, or report issues..."
-                      className="min-h-[100px]"
+                      className="min-h-[100px] bg-background border-input"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive" />
                 </FormItem>
               )}
             />
 
             <DialogFooter>
-              <Button type="submit" disabled={submitFeedback.isPending}>
+              <Button 
+                type="submit" 
+                disabled={submitFeedback.isPending}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
                 {submitFeedback.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
