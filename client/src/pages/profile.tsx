@@ -71,6 +71,23 @@ interface EditRequest {
   createdAt: string;
 }
 
+const profileUpdateSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters').optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (data.newPassword && data.newPassword !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -87,19 +104,16 @@ export default function ProfilePage() {
     },
   });
 
-  // Query for reviews - if admin, gets all reviews, otherwise just user's reviews
   const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
     queryKey: ['/api/users/reviews'],
     enabled: !!user,
   });
 
-  // Query for edit requests - admin only
   const { data: editRequests = [], isLoading: isLoadingRequests } = useQuery({
     queryKey: ['/api/users/edit-requests'],
     enabled: !!user && user.role === 'admin',
   });
 
-  // Mutation for handling review edits/deletes
   const editReviewMutation = useMutation({
     mutationFn: async ({ reviewId, type, data }: { reviewId: number, type: 'edit' | 'delete', data?: any }) => {
       const response = await fetch(`/api/seats/${reviewId}/requests`, {
@@ -152,7 +166,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Add handleAdminActionMutation definition
   const handleAdminActionMutation = useMutation({
     mutationFn: async ({ requestId, action }: { requestId: number; action: 'approve' | 'reject' }) => {
       const response = await fetch(`/api/seats/requests/${requestId}/${action}`, {
@@ -172,7 +185,6 @@ export default function ProfilePage() {
         title: 'Success',
         description: 'Edit request updated successfully',
       });
-      // Invalidate both reviews and edit requests queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/users/reviews'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/edit-requests'] });
     },
@@ -185,6 +197,54 @@ export default function ProfilePage() {
     },
   });
 
+  const profileForm = useForm<ProfileUpdate>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+      username: user?.username || '',
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: ProfileUpdate) => {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully',
+      });
+      if (profileForm.getValues('newPassword')) {
+        profileForm.reset({ 
+          currentPassword: '', 
+          newPassword: '', 
+          confirmPassword: '' 
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const onProfileSubmit = async (data: ProfileUpdate) => {
+    updateProfileMutation.mutate(data);
+  };
 
   if (!user) {
     return (
@@ -244,8 +304,9 @@ export default function ProfilePage() {
           </CardHeader>
         </Card>
 
-        <Tabs defaultValue="reviews">
+        <Tabs defaultValue="settings">
           <TabsList>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="reviews">
               {user.role === 'admin' ? 'All Reviews' : 'My Reviews'}
             </TabsTrigger>
@@ -253,6 +314,97 @@ export default function ProfilePage() {
               <TabsTrigger value="requests">Edit Requests</TabsTrigger>
             )}
           </TabsList>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Settings</CardTitle>
+                <CardDescription>
+                  Update your username or change your password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...profileForm}>
+                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password (Optional)</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm New Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              {...field}
+                              disabled={!profileForm.watch('newPassword')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      disabled={updateProfileMutation.isPending}
+                      className="w-full"
+                    >
+                      {updateProfileMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Profile'
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="reviews">
             <div className="grid gap-4">
@@ -409,7 +561,6 @@ export default function ProfilePage() {
           )}
         </Tabs>
 
-        {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -572,7 +723,6 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Preview Dialog */}
         <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
           <DialogContent>
             <DialogHeader>

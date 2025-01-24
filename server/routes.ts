@@ -4,8 +4,29 @@ import { setupAuth } from "./auth";
 import { setupEstablishmentRoutes } from "./establishment";
 import { setupUserRoutes } from "./user";
 import { db } from "@db";
-import { websiteFeedback } from "@db/schema";
-import { eq, sql } from "drizzle-orm";
+import { websiteFeedback, users } from "@db/schema";
+import { eq, sql, and, not } from "drizzle-orm";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+const crypto = {
+  hash: async (password: string) => {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
+  },
+  compare: async (suppliedPassword: string, storedPassword: string) => {
+    const [hashedPassword, salt] = storedPassword.split(".");
+    const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
+    const suppliedPasswordBuf = (await scryptAsync(
+      suppliedPassword,
+      salt,
+      64
+    )) as Buffer;
+    return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+  },
+};
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
@@ -16,6 +37,67 @@ export function registerRoutes(app: Express): Server {
 
   // Setup user routes (/api/users/*)
   setupUserRoutes(app);
+
+  // Profile update route
+  app.put('/api/user/profile', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Authentication required');
+      }
+
+      const { username, currentPassword, newPassword } = req.body;
+
+      // First verify the current password
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, req.user!.id))
+        .limit(1);
+
+      const isPasswordValid = await crypto.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).send('Current password is incorrect');
+      }
+
+      // If changing username, check if it's taken
+      if (username !== user.username) {
+        const [existingUser] = await db
+          .select()
+          .from(users)
+          .where(and(
+            eq(users.username, username),
+            not(eq(users.id, req.user!.id))
+          ))
+          .limit(1);
+
+        if (existingUser) {
+          return res.status(400).send('Username is already taken');
+        }
+      }
+
+      // Prepare update data
+      const updates: Record<string, any> = { username };
+
+      // If changing password, hash the new one
+      if (newPassword) {
+        updates.password = await crypto.hash(newPassword);
+      }
+
+      // Update the user
+      const [updatedUser] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, req.user!.id))
+        .returning();
+
+      res.json({
+        message: 'Profile updated successfully',
+        user: { id: updatedUser.id, username: updatedUser.username }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // Get all feedback
   app.get('/api/feedback', async (_req, res, next) => {
