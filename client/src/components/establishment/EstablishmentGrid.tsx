@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, AlertCircle, MapPin } from 'lucide-react';
+import { Loader2, AlertCircle, MapPin, ImageIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,6 +8,7 @@ import { Link } from 'wouter';
 import { YelpImageCarousel } from './YelpImageCarousel';
 import { useToast } from '@/hooks/use-toast';
 import { AdSense } from '../ads/AdSense';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Establishment {
   id: string;
@@ -44,6 +45,7 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
   const [isLocating, setIsLocating] = useState(false);
   const [permissionState, setPermissionState] = useState<PermissionState | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
 
   const handleLocationError = (error: GeolocationPositionError) => {
     console.error('Geolocation error:', error);
@@ -335,8 +337,8 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {establishments.map((establishment: Establishment, index: number) => {
         const items = [];
+        const isImageLoaded = loadedImages[establishment.id];
 
-        // Add the establishment card
         items.push(
           <Link
             key={establishment.id}
@@ -348,18 +350,27 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
                 <div className="grid grid-cols-5 h-full">
                   <div className="col-span-2 relative h-full min-h-[200px]">
                     {establishment.photos && establishment.photos.length > 0 ? (
-                      <img
-                        src={establishment.photos[0]}
-                        alt={`${establishment.name}`}
-                        className="absolute inset-0 w-full h-full object-cover rounded-l-lg"
-                      />
+                      <>
+                        <div
+                          className={`absolute inset-0 bg-muted flex items-center justify-center transition-opacity duration-300 ${
+                            isImageLoaded ? 'opacity-0' : 'opacity-100'
+                          }`}
+                        >
+                          <Skeleton className="h-full w-full" />
+                        </div>
+                        <img
+                          src={establishment.photos[0]}
+                          alt={`${establishment.name}`}
+                          className={`absolute inset-0 w-full h-full object-cover rounded-l-lg transition-opacity duration-300 ${
+                            isImageLoaded ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          onLoad={() => setLoadedImages(prev => ({ ...prev, [establishment.id]: true }))}
+                          loading="lazy"
+                        />
+                      </>
                     ) : (
                       <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                        <img
-                          src="/placeholder-restaurant.png"
-                          alt="No image available"
-                          className="w-12 h-12 opacity-50"
-                        />
+                        <ImageIcon className="w-12 h-12 text-muted-foreground opacity-50" />
                       </div>
                     )}
                   </div>
@@ -381,7 +392,6 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
           </Link>
         );
 
-        // Add an AdSense ad after every 4 establishments (but not after the last one)
         if ((index + 1) % 4 === 0 && index !== establishments.length - 1) {
           items.push(
             <div key={`ad-${index}`} className="col-span-full">
