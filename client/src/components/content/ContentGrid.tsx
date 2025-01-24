@@ -64,9 +64,10 @@ export function ContentGrid() {
       acc.push(
         <div key={`ad-${index}`} className="col-span-full">
           <AdSense
-            slot="1234567890" // Replace with your actual ad slot ID
+            slot="2995394340" 
             format="auto"
             className="w-full min-h-[90px] bg-gray-50"
+            responsive={true}
           />
         </div>
       );

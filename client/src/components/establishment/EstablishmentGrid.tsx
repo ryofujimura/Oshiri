@@ -396,9 +396,10 @@ export function EstablishmentGrid({ searchParams }: EstablishmentGridProps) {
           items.push(
             <div key={`ad-${index}`} className="col-span-full">
               <AdSense
-                slot="1234567890" // Replace with your actual ad slot ID
+                slot="3995394341" // Unique ad slot ID for establishment grid
                 format="auto"
                 className="w-full min-h-[90px] bg-gray-50"
+                responsive={true}
               />
             </div>
           );
