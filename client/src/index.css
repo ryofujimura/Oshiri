@@ -11,3 +11,43 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .header-gradient {
+    @apply bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground;
+  }
+
+  .card {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+    background: linear-gradient(to bottom right, hsl(var(--card)) 0%, hsl(var(--card)) 100%);
+  }
+
+  .card:hover {
+    background: linear-gradient(to bottom right, hsl(var(--card)) 0%, hsl(var(--primary)/0.1) 100%);
+  }
+
+  .nav-link {
+    @apply transition-colors duration-200 hover:text-primary font-medium;
+  }
+
+  .btn-gradient {
+    @apply bg-gradient-to-r from-primary via-primary/90 to-primary hover:opacity-90 transition-opacity duration-200;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80;
+  }
+}
+
+@layer utilities {
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
