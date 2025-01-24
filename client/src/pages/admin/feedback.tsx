@@ -102,8 +102,8 @@ export default function AdminFeedbackPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
-                  Oshiri
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
+                  Osiri
                 </a>
               </Link>
               <MainNav />

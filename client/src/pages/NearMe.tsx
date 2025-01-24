@@ -23,8 +23,8 @@ export default function NearMe() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
-                  Oshiri
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
+                  Osiri
                 </a>
               </Link>
               <MainNav />
@@ -35,9 +35,9 @@ export default function NearMe() {
       </header>
 
       <main>
-        <section className="py-12 bg-primary/5">
+        <section className="py-12 bg-accent">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-6">Discover Nearby Places</h2>
+            <h2 className="text-3xl font-bold mb-6 text-foreground">Discover Nearby Places</h2>
             <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 max-w-2xl">
               <div className="relative flex-1">
                 <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
