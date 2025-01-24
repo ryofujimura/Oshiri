@@ -22,7 +22,7 @@ export function AdSense({
   responsive = true 
 }: AdSenseProps) {
   const adRef = useRef<HTMLDivElement>(null);
-  const clientId = import.meta.env.VITE_GOOGLE_ADSENSE_CLIENT_ID;
+  const clientId = 'ca-pub-2072267475835261';
 
   useEffect(() => {
     try {
@@ -31,30 +31,13 @@ export function AdSense({
           window.adsbygoogle = [];
         }
 
-        const adScript = document.createElement('script');
-        adScript.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
-        adScript.async = true;
-        adScript.crossOrigin = 'anonymous';
-        document.head.appendChild(adScript);
-
         // Push the ad configuration
         window.adsbygoogle.push({});
       }
     } catch (error) {
       console.error('Error initializing AdSense:', error);
     }
-
-    // Cleanup
-    return () => {
-      const scripts = document.querySelectorAll(`script[src*="adsbygoogle"]`);
-      scripts.forEach(script => script.remove());
-    };
-  }, [clientId]);
-
-  if (!clientId) {
-    console.warn('AdSense client ID is not set');
-    return null;
-  }
+  }, []);
 
   return (
     <div className={className} ref={adRef}>
