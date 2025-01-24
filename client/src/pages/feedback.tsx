@@ -46,12 +46,42 @@ export default function FeedbackPage() {
     },
   });
 
-  // Query for fetching feedback
   const { data: feedbackItems = [] } = useQuery({
     queryKey: ['/api/feedback'],
   });
 
-  // Mutation for submitting feedback
+  // Admin mutation for updating feedback status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/admin/feedback/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/feedback'] });
+      toast({
+        title: 'Success',
+        description: 'Feedback status updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const submitFeedback = useMutation({
     mutationFn: async (data: FeedbackForm) => {
       const response = await fetch('/api/feedback', {
@@ -84,7 +114,6 @@ export default function FeedbackPage() {
     },
   });
 
-  // Mutation for voting
   const voteMutation = useMutation({
     mutationFn: async ({ feedbackId, voteType }: { feedbackId: number; voteType: 'up' | 'down' }) => {
       const response = await fetch(`/api/feedback/${feedbackId}/vote`, {
@@ -153,7 +182,7 @@ export default function FeedbackPage() {
             <div className="flex items-center gap-6">
               <Link href="/">
                 <a className="text-2xl font-bold hover:text-primary transition-colors">
-                  Oshiri
+                  Osiri
                 </a>
               </Link>
               <MainNav />
@@ -266,7 +295,29 @@ export default function FeedbackPage() {
                       </Button>
                     </div>
                   </div>
-                  {feedback.status !== 'pending' && (
+                  {user.role === 'admin' ? (
+                    <div className="mt-4 p-4 bg-secondary/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Current Status: {feedback.status}</p>
+                        <Select
+                          defaultValue={feedback.status}
+                          onValueChange={(value) => 
+                            updateStatusMutation.mutate({ id: feedback.id, status: value })
+                          }
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">In Review</SelectItem>
+                            <SelectItem value="in-progress">Working</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="declined">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ) : feedback.status !== 'pending' && (
                     <div className="mt-4 p-4 bg-secondary/20 rounded-lg">
                       <p className="text-sm font-medium">Status: {feedback.status}</p>
                     </div>

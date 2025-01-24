@@ -133,6 +133,7 @@ export function registerRoutes(app: Express): Server {
           userId: req.user!.id,
           content,
           category,
+          status: 'pending' as 'pending' | 'in-progress' | 'completed' | 'declined',
         })
         .returning();
 
