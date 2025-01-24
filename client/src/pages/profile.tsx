@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Switch } from "@/components/ui/switch";
 
 const seatReviewSchema = z.object({
   type: z.string().min(1, 'Please select a seat type'),
@@ -52,6 +53,7 @@ interface Seat {
     username: string;
   };
   createdAt: string;
+  isVisible: boolean; // Added isVisible field
 }
 
 interface EditRequest {
@@ -226,10 +228,10 @@ export default function ProfilePage() {
         description: 'Profile updated successfully',
       });
       if (profileForm.getValues('newPassword')) {
-        profileForm.reset({ 
-          currentPassword: '', 
-          newPassword: '', 
-          confirmPassword: '' 
+        profileForm.reset({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
         });
       }
     },
@@ -245,6 +247,38 @@ export default function ProfilePage() {
   const onProfileSubmit = async (data: ProfileUpdate) => {
     updateProfileMutation.mutate(data);
   };
+
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async ({ reviewId, isVisible }: { reviewId: number; isVisible: boolean }) => {
+      const response = await fetch(`/api/seats/${reviewId}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVisible }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users/reviews'] });
+      toast({
+        title: 'Success',
+        description: 'Review visibility updated successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
 
   if (!user) {
     return (
@@ -375,8 +409,8 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="password" 
+                            <Input
+                              type="password"
                               {...field}
                               disabled={!profileForm.watch('newPassword')}
                             />
@@ -386,8 +420,8 @@ export default function ProfilePage() {
                       )}
                     />
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={updateProfileMutation.isPending}
                       className="w-full"
                     >
@@ -432,24 +466,42 @@ export default function ProfilePage() {
                             Posted on {format(new Date(review.createdAt), 'MMM d, yyyy')}
                           </CardDescription>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedReview(review);
-                            setIsEditDialogOpen(true);
-                            form.reset({
-                              type: review.type,
-                              capacity: review.capacity,
-                              comfortRating: review.comfortRating,
-                              hasPowerOutlet: review.hasPowerOutlet,
-                              noiseLevel: review.noiseLevel,
-                              description: review.description,
-                            });
-                          }}
-                        >
-                          <PenSquare className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          {user.role === 'admin' && (
+                            <div className="flex items-center gap-2 mr-4">
+                              <Switch
+                                checked={review.isVisible}
+                                onCheckedChange={(checked) =>
+                                  toggleVisibilityMutation.mutate({
+                                    reviewId: review.id,
+                                    isVisible: checked,
+                                  })
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {review.isVisible ? 'Visible' : 'Hidden'}
+                              </span>
+                            </div>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedReview(review);
+                              setIsEditDialogOpen(true);
+                              form.reset({
+                                type: review.type,
+                                capacity: review.capacity,
+                                comfortRating: review.comfortRating,
+                                hasPowerOutlet: review.hasPowerOutlet,
+                                noiseLevel: review.noiseLevel,
+                                description: review.description,
+                              });
+                            }}
+                          >
+                            <PenSquare className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>

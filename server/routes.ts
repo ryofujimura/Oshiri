@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { setupEstablishmentRoutes } from "./establishment";
 import { setupUserRoutes } from "./user";
 import { db } from "@db";
-import { websiteFeedback, users } from "@db/schema";
+import { websiteFeedback, users, seats } from "@db/schema"; // Added import for seats schema
 import { eq, sql, and, not } from "drizzle-orm";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -158,7 +158,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Use SQL expressions to increment the vote count
-      const updates = type === 'up' 
+      const updates = type === 'up'
         ? { upvotes: sql`${websiteFeedback.upvotes} + 1` }
         : { downvotes: sql`${websiteFeedback.downvotes} + 1` };
 
@@ -224,6 +224,60 @@ export function registerRoutes(app: Express): Server {
       next(error);
     }
   });
+
+  // Toggle seat review visibility
+  app.patch('/api/seats/:id/visibility', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || req.user!.role !== 'admin') {
+        return res.status(403).send('Admin access required');
+      }
+
+      const seatId = parseInt(req.params.id);
+      const { isVisible } = req.body;
+
+      if (typeof isVisible !== 'boolean') {
+        return res.status(400).send('Invalid visibility value');
+      }
+
+      const [updatedSeat] = await db
+        .update(seats)
+        .set({ isVisible })
+        .where(eq(seats.id, seatId))
+        .returning();
+
+      if (!updatedSeat) {
+        return res.status(404).send('Review not found');
+      }
+
+      res.json(updatedSeat);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Update the existing reviews endpoint to return all reviews for admins
+  app.get('/api/users/reviews', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Authentication required');
+      }
+
+      const query = db.query.seats.findMany({
+        with: {
+          establishment: true,
+          user: true,
+        },
+        where: req.user!.role === 'admin' ? undefined : eq(seats.userId, req.user!.id),
+        orderBy: (seats, { desc }) => [desc(seats.createdAt)],
+      });
+
+      const reviews = await query;
+      res.json(reviews);
+    } catch (error) {
+      next(error);
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
