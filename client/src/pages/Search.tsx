@@ -19,7 +19,6 @@ export default function Search() {
     e.preventDefault();
     setError(null);
 
-    // Location is optional as we'll try to use geolocation if not provided
     setSearchParams({
       term: searchTerm.trim() || undefined,
       location: location.trim() || undefined
@@ -34,7 +33,7 @@ export default function Search() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
                   Osiri
                 </a>
               </Link>
@@ -46,9 +45,9 @@ export default function Search() {
       </header>
 
       <main>
-        <section className="py-12 bg-primary/5">
+        <section className="py-12 bg-accent">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-6">Search Restaurants</h2>
+            <h2 className="text-3xl font-bold mb-6 text-foreground">Search Restaurants</h2>
             <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 max-w-2xl">
               <div className="relative flex-1">
                 <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

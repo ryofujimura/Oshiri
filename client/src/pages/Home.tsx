@@ -64,14 +64,14 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-gray-200/80 sticky top-0 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50">
+    <div className="min-h-screen bg-background">
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-medium hover:opacity-80 transition-opacity">
-                  Oshiri
+                <a className="text-2xl font-medium text-primary hover:text-primary/80 transition-colors">
+                  Osiri
                 </a>
               </Link>
               <MainNav />
@@ -90,10 +90,10 @@ export default function Home() {
               transition={springTransition}
               className="max-w-4xl mx-auto text-center"
             >
-              <h1 className="text-6xl font-medium mb-6 tracking-tight">
+              <h1 className="text-6xl font-medium mb-6 tracking-tight text-foreground">
                 Find Your Perfect Seat
               </h1>
-              <p className="text-xl text-gray-600 mb-16 leading-relaxed max-w-2xl mx-auto">
+              <p className="text-xl text-muted-foreground mb-16 leading-relaxed max-w-2xl mx-auto">
                 Discover and rate the most comfortable seats in cafes and restaurants.
                 Because great experiences start with where you sit.
               </p>
@@ -101,7 +101,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <MotionButton
                   variant="outline"
-                  className="h-auto py-8 px-6 border border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                  className="h-auto py-8 px-6 hover:bg-accent"
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   transition={springTransition}
@@ -111,14 +111,14 @@ export default function Home() {
                     <Search className="w-8 h-8" />
                     <div className="text-center">
                       <div className="font-medium text-lg mb-1">Search</div>
-                      <div className="text-sm text-gray-600">Find your perfect spot</div>
+                      <div className="text-sm text-muted-foreground">Find your perfect spot</div>
                     </div>
                   </div>
                 </MotionButton>
 
                 <MotionButton
                   variant="outline"
-                  className="h-auto py-8 px-6 border border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                  className="h-auto py-8 px-6 hover:bg-accent"
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   transition={springTransition}
@@ -128,14 +128,14 @@ export default function Home() {
                     <MapPin className="w-8 h-8" />
                     <div className="text-center">
                       <div className="font-medium text-lg mb-1">Near Me</div>
-                      <div className="text-sm text-gray-600">Discover local gems</div>
+                      <div className="text-sm text-muted-foreground">Discover local gems</div>
                     </div>
                   </div>
                 </MotionButton>
 
                 <MotionButton
                   variant="outline"
-                  className="h-auto py-8 px-6 border border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                  className="h-auto py-8 px-6 hover:bg-accent"
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   transition={springTransition}
@@ -145,7 +145,7 @@ export default function Home() {
                     <Star className="w-8 h-8" />
                     <div className="text-center">
                       <div className="font-medium text-lg mb-1">Top Rated</div>
-                      <div className="text-sm text-gray-600">Best seating experiences</div>
+                      <div className="text-sm text-muted-foreground">Best seating experiences</div>
                     </div>
                   </div>
                 </MotionButton>
@@ -155,7 +155,7 @@ export default function Home() {
         </section>
 
         {recentReviews && recentReviews.length > 0 && (
-          <section className="py-32 bg-gray-50">
+          <section className="py-32 bg-accent">
             <div className="container mx-auto px-4">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -164,13 +164,13 @@ export default function Home() {
                 transition={springTransition}
                 className="max-w-4xl mx-auto"
               >
-                <h2 className="text-4xl font-medium text-center mb-16">Recent Reviews</h2>
+                <h2 className="text-4xl font-medium text-center mb-16 text-foreground">Recent Reviews</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {getDisplayedReviews(recentReviews).map((review: Review) => (
                     <MotionCard
                       key={review.id}
-                      className="bg-white border border-gray-200 hover:border-gray-300"
+                      className="bg-background border-border hover:border-primary/20"
                       whileHover={{ y: -4 }}
                       transition={springTransition}
                       onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}
@@ -185,23 +185,23 @@ export default function Home() {
                           </div>
                         )}
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="p-2 rounded-lg bg-gray-100">
+                          <div className="p-2 rounded-lg bg-accent">
                             <Sofa className="h-5 w-5" />
                           </div>
-                          <h4 className="font-medium">
+                          <h4 className="font-medium text-foreground">
                             {review.establishment.name}
                           </h4>
                         </div>
                         <div className="space-y-3">
                           <p className="text-sm flex items-center gap-2">
-                            <span className="font-medium">Type:</span>
-                            <span className="text-gray-600 capitalize">{review.type}</span>
+                            <span className="font-medium text-foreground">Type:</span>
+                            <span className="text-muted-foreground capitalize">{review.type}</span>
                           </p>
                           <p className="text-sm flex items-center gap-2">
-                            <span className="font-medium">Comfort:</span>
-                            <span className="text-gray-600">{review.comfortRating}</span>
+                            <span className="font-medium text-foreground">Comfort:</span>
+                            <span className="text-muted-foreground">{review.comfortRating}</span>
                           </p>
-                          <p className="text-sm text-gray-500 pt-2 border-t border-gray-100">
+                          <p className="text-sm text-muted-foreground pt-2 border-t border-border">
                             By {review.user.username} • {new Date(review.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -214,7 +214,7 @@ export default function Home() {
           </section>
         )}
 
-        <section className="py-32 bg-white">
+        <section className="py-32 bg-background">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -223,22 +223,22 @@ export default function Home() {
               transition={springTransition}
               className="max-w-4xl mx-auto"
             >
-              <h2 className="text-4xl font-medium text-center mb-16">Why Choose Oshiri?</h2>
+              <h2 className="text-4xl font-medium text-center mb-16 text-foreground">Why Choose Osiri?</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <MotionCard
-                  className="border border-gray-200 hover:border-gray-300"
+                  className="border-border hover:border-primary/20"
                   whileHover={{ y: -4 }}
                   transition={springTransition}
                 >
                   <CardContent className="p-6">
-                    <div className="p-3 rounded-lg bg-gray-100 w-fit mb-4">
+                    <div className="p-3 rounded-lg bg-accent w-fit mb-4">
                       <Sofa className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-medium mb-2">
+                    <h3 className="text-xl font-medium mb-2 text-foreground">
                       Detailed Reviews
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Get comprehensive insights about seating comfort, power outlets,
                       and noise levels. Make informed decisions.
                     </p>
@@ -246,18 +246,18 @@ export default function Home() {
                 </MotionCard>
 
                 <MotionCard
-                  className="border border-gray-200 hover:border-gray-300"
+                  className="border-border hover:border-primary/20"
                   whileHover={{ y: -4 }}
                   transition={springTransition}
                 >
                   <CardContent className="p-6">
-                    <div className="p-3 rounded-lg bg-gray-100 w-fit mb-4">
+                    <div className="p-3 rounded-lg bg-accent w-fit mb-4">
                       <MapPin className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-medium mb-2">
+                    <h3 className="text-xl font-medium mb-2 text-foreground">
                       Location-Based
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Find the perfect spot near you with our location-based search.
                       Discover hidden gems in your area.
                     </p>
@@ -265,18 +265,18 @@ export default function Home() {
                 </MotionCard>
 
                 <MotionCard
-                  className="border border-gray-200 hover:border-gray-300"
+                  className="border-border hover:border-primary/20"
                   whileHover={{ y: -4 }}
                   transition={springTransition}
                 >
                   <CardContent className="p-6">
-                    <div className="p-3 rounded-lg bg-gray-100 w-fit mb-4">
+                    <div className="p-3 rounded-lg bg-accent w-fit mb-4">
                       <Users className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-medium mb-2">
+                    <h3 className="text-xl font-medium mb-2 text-foreground">
                       Community Driven
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Join our community of reviewers. Share experiences and help
                       others find their ideal seating.
                     </p>
@@ -287,7 +287,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-32 bg-[#101010] text-white">
+        <section className="py-32 bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -297,13 +297,13 @@ export default function Home() {
               className="max-w-2xl mx-auto"
             >
               <h2 className="text-4xl font-medium mb-6">Ready to Find Your Perfect Seat?</h2>
-              <p className="text-xl text-gray-400 mb-10">
+              <p className="text-xl opacity-90 mb-10">
                 Join our growing community and start discovering comfortable spaces
                 that match your needs.
               </p>
               <MotionButton
                 size="lg"
-                className="bg-white text-black hover:bg-gray-100"
+                variant="secondary"
                 onClick={() => setLocation('/search')}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

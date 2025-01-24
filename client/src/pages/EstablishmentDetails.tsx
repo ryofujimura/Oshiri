@@ -297,7 +297,7 @@ export default function EstablishmentDetails() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <a className="text-2xl font-bold hover:text-primary transition-colors">
+                <a className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
                   Osiri
                 </a>
               </Link>
@@ -336,9 +336,9 @@ export default function EstablishmentDetails() {
 
             {establishment.photos && establishment.photos.length > 0 && (
               <div className="w-full max-w-md mx-auto lg:mx-0">
-                <YelpImageCarousel 
-                  photos={establishment.photos} 
-                  aspectRatio={16/9}
+                <YelpImageCarousel
+                  photos={establishment.photos}
+                  aspectRatio={16 / 9}
                   className="rounded-lg shadow-md"
                 />
               </div>
