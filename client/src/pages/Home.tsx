@@ -14,6 +14,7 @@ interface Review {
   id: number;
   type: string;
   comfortRating: string;
+  visibility: 'public' | 'private';
   user: {
     username: string;
   };
@@ -42,7 +43,8 @@ export default function Home() {
   });
 
   const getDisplayedReviews = (reviews: Review[] = []) => {
-    return reviews.slice(0, 6);
+    // Filter public reviews first, then take the first 6
+    return reviews.filter(review => review.visibility === 'public').slice(0, 6);
   };
 
   const actionMenuItems = [
