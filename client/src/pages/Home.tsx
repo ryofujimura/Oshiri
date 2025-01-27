@@ -1,14 +1,16 @@
-import { AuthButton } from '@/components/auth/AuthButton';
+import { useState } from 'react';
 import { MainNav } from '@/components/layout/MainNav';
+import { AuthButton } from '@/components/auth/AuthButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLocation, Link } from 'wouter';
-import { Search, MapPin, Star, Sofa, Users, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Star, Sofa, Users, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { FloatingActionMenu } from "@/components/ui/floating-action-menu";
 import { Plus, MapPin as MapPinIcon, Star as StarIcon, Search as SearchIcon } from "lucide-react";
 import { YelpImageCarousel } from "@/components/establishment/YelpImageCarousel";
+import { Badge } from "@/components/ui/badge";
 
 interface Review {
   id: number;
@@ -43,8 +45,8 @@ export default function Home() {
   });
 
   const getDisplayedReviews = (reviews: Review[] = []) => {
-    // Filter public reviews first, then take the first 6
-    return reviews.filter(review => review.visibility === 'public').slice(0, 6);
+    // Just take the first 6 reviews, regardless of visibility
+    return reviews.slice(0, 6);
   };
 
   const actionMenuItems = [
@@ -172,7 +174,9 @@ export default function Home() {
                   {getDisplayedReviews(recentReviews).map((review: Review) => (
                     <MotionCard
                       key={review.id}
-                      className="bg-background border-border hover:border-primary/20"
+                      className={`bg-background border-border hover:border-primary/20 ${
+                        review.visibility === 'private' ? 'opacity-75' : ''
+                      }`}
                       whileHover={{ y: -4 }}
                       transition={springTransition}
                       onClick={() => setLocation(`/establishments/${review.establishment.yelpId}`)}
@@ -186,13 +190,22 @@ export default function Home() {
                             />
                           </div>
                         )}
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="p-2 rounded-lg bg-accent">
-                            <Sofa className="h-5 w-5" />
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-accent">
+                              <Sofa className="h-5 w-5" />
+                            </div>
+                            <h4 className="font-medium text-foreground">
+                              {review.establishment.name}
+                            </h4>
                           </div>
-                          <h4 className="font-medium text-foreground">
-                            {review.establishment.name}
-                          </h4>
+                          <Badge variant={review.visibility === 'private' ? "secondary" : "default"}>
+                            {review.visibility === 'private' ? (
+                              <><EyeOff className="h-3 w-3 mr-1" /> Private</>
+                            ) : (
+                              <><Eye className="h-3 w-3 mr-1" /> Public</>
+                            )}
+                          </Badge>
                         </div>
                         <div className="space-y-3">
                           <p className="text-sm flex items-center gap-2">
