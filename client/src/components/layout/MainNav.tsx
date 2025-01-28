@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Menu, Search, MapPin, Star, User, MessageSquarePlus, X } from 'lucide-react';
+import { Menu, Search, MapPin, Star, User, MessageSquarePlus, X, Database } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 const routes = [
   {
@@ -37,17 +38,27 @@ const routes = [
     icon: User,
     description: 'View your reviews and settings',
   },
+  {
+    title: 'Proto',
+    href: '/admin/proto',
+    icon: Database,
+    description: 'Database Analytics Dashboard',
+    adminOnly: true,
+  },
 ];
 
 export function MainNav() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+
+  const visibleRoutes = routes.filter(route => !route.adminOnly || (user?.role === 'admin'));
 
   return (
     <>
       {/* Desktop Navigation */}
       <nav className="hidden md:flex items-center space-x-6">
-        {routes.map((route) => (
+        {visibleRoutes.map((route) => (
           <Link key={route.href} href={route.href}>
             <a
               className={cn(
@@ -88,7 +99,7 @@ export function MainNav() {
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
           <ScrollArea className="h-full py-6 relative bg-background">
             <div className="space-y-1 px-2">
-              {routes.map((route) => (
+              {visibleRoutes.map((route) => (
                 <Link key={route.href} href={route.href}>
                   <SheetClose asChild>
                     <a
