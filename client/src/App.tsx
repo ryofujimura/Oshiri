@@ -11,6 +11,7 @@ import Profile from "@/pages/profile";
 import TopRated from "@/pages/TopRated";
 import Feedback from "@/pages/feedback";
 import AdminFeedback from "@/pages/admin/feedback";
+import Proto from "@/pages/admin/proto";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/top-rated" component={TopRated} />
       <Route path="/feedback" component={Feedback} />
       <Route path="/admin/feedback" component={AdminFeedback} />
+      <Route path="/admin/proto" component={Proto} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -4,10 +4,11 @@ import { setupAuth } from "./auth";
 import { setupEstablishmentRoutes } from "./establishment";
 import { setupUserRoutes } from "./user";
 import { db } from "@db";
-import { websiteFeedback, users, seats } from "@db/schema"; // Added import for seats schema
+import { websiteFeedback, users, seats, establishments, images } from "@db/schema"; 
 import { eq, sql, and, not } from "drizzle-orm";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import type { SelectUser } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -273,6 +274,29 @@ export function registerRoutes(app: Express): Server {
 
       const reviews = await query;
       res.json(reviews);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Database statistics endpoint for admin proto page
+  app.get('/api/admin/database/stats', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || req.user!.role !== 'admin') {
+        return res.status(403).send('Admin access required');
+      }
+
+      const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+      const [establishmentCount] = await db.select({ count: sql<number>`count(*)` }).from(establishments);
+      const [seatCount] = await db.select({ count: sql<number>`count(*)` }).from(seats);
+      const [imageCount] = await db.select({ count: sql<number>`count(*)` }).from(images);
+
+      res.json({
+        users: userCount.count,
+        establishments: establishmentCount.count,
+        seats: seatCount.count,
+        images: imageCount.count,
+      });
     } catch (error) {
       next(error);
     }
