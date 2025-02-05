@@ -53,4 +53,4 @@ The application will be available at `http://localhost:5000`.
 
 ## License
 
-MIT License
+Ryo Fujimura 2025
